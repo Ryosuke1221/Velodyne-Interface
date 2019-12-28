@@ -120,6 +120,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	pcl::PointCloud<PointType>::Ptr cloud_show_static(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_moving(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_moving_before(new pcl::PointCloud<PointType>());
+	pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
 
 	CTimeString time_;
 
@@ -245,6 +246,20 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 			Trans_.rotate(Eigen::AngleAxisf(pitch_delta, Eigen::Vector3f::UnitY()));
 			Trans_.rotate(Eigen::AngleAxisf(yaw_delta, Eigen::Vector3f::UnitZ()));
 			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
+
+			//ground
+			{
+				double th_height;
+				th_height = -0.1;
+				cloud_temp->clear();
+				pcl::copyPointCloud(*cloud_moving, *cloud_temp);
+				cloud_moving->clear();
+				for (size_t i = 0; i < cloud_temp->size(); i++)
+				{
+					if (th_height > cloud_temp->points[i].z) continue;
+					cloud_moving->push_back(cloud_temp->points[i]);
+				}
+			}
 
 			b_makeNewPC = false;
 
