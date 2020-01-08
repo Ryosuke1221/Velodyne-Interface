@@ -136,6 +136,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 	bool b_makeNewPC = true;
 	bool b_first = true;
+	bool b_escaped = false;
 
 	enum KEYNUM {
 		NONE ,
@@ -231,6 +232,17 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 			cout << "PC(" << num_PC_now << ") number :" << cloud_moving_before->size() << endl;
 
+			cout << endl;
+			cout << "Use numpad" << endl;
+			cout << " TURN_LEFT:7    UP:8  TURN_RIGHT:9 " << endl;
+			cout << "      LEFT:4    ----       RIGHT:6 " << endl;
+			cout << "      ------  DOWN:2       -------" << endl;
+
+			cout << endl;
+			cout << "Switch:ENTER" << endl;
+			cout << "Escape:ESC" << endl;
+			cout << endl;
+
 			//state_vec
 			x_delta = state_vec[num_PC_now].x_;
 			y_delta = state_vec[num_PC_now].y_;
@@ -273,6 +285,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		short key_num_turn_r = GetAsyncKeyState(VK_NUMPAD9);
 		short key_num_turn_l = GetAsyncKeyState(VK_NUMPAD7);
 		short key_num_enter = GetAsyncKeyState(VK_RETURN);
+		short key_num_escape = GetAsyncKeyState(VK_ESCAPE);
 		if ((key_num_up & 1) == 1) key_ = UP;
 		else if ((key_num_down & 1) == 1) key_ = DOWN;
 		else if ((key_num_right & 1) == 1) key_ = RIGHT;
@@ -280,6 +293,12 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		else if ((key_num_turn_r & 1) == 1) key_ = TURN_R;
 		else if ((key_num_turn_l & 1) == 1) key_ = TURN_L;
 		else if ((key_num_enter & 1) == 1) key_ = ENTER;
+		else if ((key_num_escape & 1) == 1)
+		{
+			cout << "ESC called" << endl;
+			b_escaped = true;
+			break;
+		}
 		else key_ = NONE;
 
 		if (b_first) {
@@ -363,6 +382,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	}
 
 	//output txt
+	if(!b_escaped)
 	{
 		std::string filename_outputTXT;
 		filename_outputTXT = "\../savedfolder/tramsformation.txt";
@@ -385,10 +405,10 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 			ofs_ << state_vec[i].yaw_ << endl;
 		}
 		ofs_.close();
+		cout << "file has saved!" << endl;
+
 	}
-
-	cout << "file saved!" << endl;
-
+	else cout << "file has not saved!" << endl;
 
 }
 
@@ -421,6 +441,7 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_) {
 
 		//show all PointCloud
 		cout << "show all PointCloud" << endl;
+		cout << "Press SPACE to switch" << endl;
 		int index = 0;
 		cout << "showing :" << 0 << endl;
 		while (!m_viewer->wasStopped()) {
@@ -927,6 +948,9 @@ void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud) {
 void CVelodyneInterface::TimerWrite() {
 
 	CTimeString time;
+	int wait_second = 10;
+	cout << "Please write waiting time[s]:";
+	cin >> wait_second;
 
 	while (1) {
 		cout << "waiting..." << endl;
@@ -938,7 +962,7 @@ void CVelodyneInterface::TimerWrite() {
 
 	}
 	cout << "Toggled and start!!" << endl;
-	Sleep(10 * 1000);
+	Sleep(wait_second * 1000);
 
 	while (1) {
 		boost::mutex::scoped_try_lock lock(m_mutex);
@@ -970,6 +994,7 @@ void CVelodyneInterface::ToggleWrite() {
 	CTimeString time;
 
 	////•`‰æ‚Ìƒ‹[ƒv
+	cout << "Press SPACE to screenshot" << endl;
 	while (!m_viewer->wasStopped()) {
 		// Update Viewer
 		m_viewer->spinOnce();
