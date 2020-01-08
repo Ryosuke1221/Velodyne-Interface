@@ -125,7 +125,6 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	CTimeString time_;
 
 	Eigen::Affine3f Trans_;
-	double x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta;
 
 	double disp_translation = 0.;
 	double disp_rotation = 0.;
@@ -146,7 +145,8 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		LEFT ,
 		TURN_R ,
 		TURN_L ,
-		ENTER
+		ENTER ,
+		SUBTRACT
 	};
 
 	typedef struct SState {
@@ -211,7 +211,12 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 	KEYNUM key_;
 
-	x_delta = 0.;	y_delta = 0.;	z_delta = 0.;	roll_delta = 0.;	pitch_delta = 0.;	yaw_delta = 0.;
+	double x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta;
+
+	double x_delta_init, y_delta_init, z_delta_init, roll_delta_init, pitch_delta_init, yaw_delta_init;
+	x_delta_init = y_delta_init = z_delta_init = roll_delta_init = pitch_delta_init = yaw_delta_init = 0.;
+
+	//x_delta = 0.;	y_delta = 0.;	z_delta = 0.;	roll_delta = 0.;	pitch_delta = 0.;	yaw_delta = 0.;
 
 
 	while (1) {
@@ -233,23 +238,34 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 			cout << "PC(" << num_PC_now << ") number :" << cloud_moving_before->size() << endl;
 
 			cout << endl;
+			cout << "**********( key option )**********" << endl;
 			cout << "Use numpad" << endl;
-			cout << " TURN_LEFT:7    UP:8  TURN_RIGHT:9 " << endl;
-			cout << "      LEFT:4    ----       RIGHT:6 " << endl;
+			cout << " TURN_LEFT:7    UP:8  TURN_RIGHT:9" << endl;
+			cout << "      LEFT:4    ----       RIGHT:6" << endl;
 			cout << "      ------  DOWN:2       -------" << endl;
 
 			cout << endl;
+			cout << "Reset:-(numpad)" << endl;
+
 			cout << "Switch:ENTER" << endl;
 			cout << "Escape:ESC" << endl;
+			cout << "**********************************" << endl;
 			cout << endl;
 
 			//state_vec
-			x_delta = state_vec[num_PC_now].x_;
-			y_delta = state_vec[num_PC_now].y_;
-			z_delta = state_vec[num_PC_now].z_;
-			roll_delta = state_vec[num_PC_now].roll_;
-			pitch_delta = state_vec[num_PC_now].pitch_;
-			yaw_delta = state_vec[num_PC_now].yaw_;
+			x_delta_init = state_vec[num_PC_now].x_;
+			y_delta_init = state_vec[num_PC_now].y_;
+			z_delta_init = state_vec[num_PC_now].z_;
+			roll_delta_init = state_vec[num_PC_now].roll_;
+			pitch_delta_init = state_vec[num_PC_now].pitch_;
+			yaw_delta_init = state_vec[num_PC_now].yaw_;
+
+			x_delta = x_delta_init;
+			y_delta = y_delta_init;
+			z_delta = z_delta_init;
+			roll_delta = roll_delta_init;
+			pitch_delta = pitch_delta_init;
+			yaw_delta = yaw_delta_init;
 
 			cloud_moving->clear();
 			Trans_ = Eigen::Affine3f::Identity();
@@ -277,6 +293,15 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 		}
 
+		//https://www.slideshare.net/masafuminoda/pcl-11030703
+		//Viewer
+		//左ドラッグ：視点の回転
+		//Shift+左ドラッグ：視点の平行移動．
+		//Ctrl+左ドラッグ：画面上の回転
+		//右ドラッグ：ズーム
+		//g：メジャーの表示
+		//j：スクリーンショットの保存
+
 		//input key
 		short key_num_up = GetAsyncKeyState(VK_NUMPAD8);
 		short key_num_down = GetAsyncKeyState(VK_NUMPAD2);
@@ -286,6 +311,8 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		short key_num_turn_l = GetAsyncKeyState(VK_NUMPAD7);
 		short key_num_enter = GetAsyncKeyState(VK_RETURN);
 		short key_num_escape = GetAsyncKeyState(VK_ESCAPE);
+		short key_num_subt_numpad = GetAsyncKeyState(VK_SUBTRACT);
+
 		if ((key_num_up & 1) == 1) key_ = UP;
 		else if ((key_num_down & 1) == 1) key_ = DOWN;
 		else if ((key_num_right & 1) == 1) key_ = RIGHT;
@@ -293,6 +320,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		else if ((key_num_turn_r & 1) == 1) key_ = TURN_R;
 		else if ((key_num_turn_l & 1) == 1) key_ = TURN_L;
 		else if ((key_num_enter & 1) == 1) key_ = ENTER;
+		else if ((key_num_subt_numpad & 1) == 1) key_ = SUBTRACT;
 		else if ((key_num_escape & 1) == 1)
 		{
 			cout << "ESC called" << endl;
@@ -301,7 +329,8 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		}
 		else key_ = NONE;
 
-		if (b_first) {
+		if (b_first)
+		{
 			key_ = NONE;
 			b_first = false;
 		}
@@ -335,7 +364,8 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 			yaw_delta += disp_rotation;
 			break;
 
-		case ENTER: {
+		case ENTER:
+		{
 
 			*cloud_show_static += *cloud_moving;
 
@@ -348,8 +378,21 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 			num_PC_now++;
 			b_makeNewPC = true;
+			cout << "ENTER pressed" << endl;
 
 			break;
+		}
+
+		case SUBTRACT:
+		{
+			x_delta = x_delta_init;
+			y_delta = y_delta_init;
+			z_delta = z_delta_init;
+			roll_delta = roll_delta_init;
+			pitch_delta = pitch_delta_init;
+			yaw_delta = yaw_delta_init;
+			cout << "-(numpad) pressed" << endl;
+
 		}
 
 		default:
