@@ -1,7 +1,7 @@
 #include"Velodyne_Interface.h"
 
-void CVelodyneInterface::all() {
-
+void CVelodyneInterface::all(string ipaddress, string port)
+{
 	int WhichProcess = 0;
 	string filename1, filename2;
 
@@ -62,14 +62,14 @@ void CVelodyneInterface::all() {
 	case EN_ToggleWrite:
 		//ToggleWrite
 		initVisualizer();
-		connect();
+		connect(ipaddress, port);
 		ToggleWrite();
 		disconnect();
 		break;
 
 	case EN_TimerWrite:
 		//TimerWrite
-		connect();
+		connect(ipaddress, port);
 		TimerWrite();
 		disconnect();
 		break;
@@ -77,7 +77,7 @@ void CVelodyneInterface::all() {
 	case EN_capture:
 		//capture and show
 		initVisualizer();
-		connect();
+		connect(ipaddress, port);
 		show();
 		disconnect();
 		break;
@@ -85,7 +85,7 @@ void CVelodyneInterface::all() {
 	case EN_capture2D:
 		//capture and show in 2D
 		initVisualizer();
-		connect();
+		connect(ipaddress, port);
 		show_2D();
 		disconnect();
 		break;
@@ -1014,7 +1014,7 @@ void CVelodyneInterface::Process() {
 
 	initVisualizer();
 	
-	connect();
+	//connect();
 
 	//描画をする関数
 	show();
@@ -1100,15 +1100,12 @@ void CVelodyneInterface::execute(int nPeriod) {
 
 }
 
-bool CVelodyneInterface::connect() {
+bool CVelodyneInterface::connect(string ipaddress, string port)
+{
+	//init sensor status
 
+	//arg: ipaddress, port
 
-	//センサの初期化らしき記述をかく
-	//grabberにIPアドレスとポートを渡す
-	std::string ipaddress("192.168.1.79");
-	//std::string ipaddress("192.168.1.201");		//kougei dai
-
-	std::string port("2368");
 	std::cout << "-ipadress : " << ipaddress << std::endl;
 	std::cout << "-port : " << port << std::endl;
 

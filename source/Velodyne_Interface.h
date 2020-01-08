@@ -43,7 +43,7 @@ public:
 	};
 
 
-	bool connect();
+	bool connect(string ipaddress, string port);
 	bool disconnect();
 	void initVisualizer();
 	void ToggleWrite();
@@ -89,7 +89,7 @@ public:
 	
 	vector<double> getDegVector(pcl::PointCloud<PointType>::Ptr cloud, int NumOfData);
 
-	void all();
+	void all(string ipaddress = "", string port = "");
 
 
 	//
