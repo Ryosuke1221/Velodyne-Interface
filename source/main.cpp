@@ -2,8 +2,10 @@
 
 int main() {
 
-	string ipaddress("192.168.1.79");
+	//string ipaddress("192.168.1.79");
+	string ipaddress("192.168.1.70");
 	string port("2368");
+	//string port("8308");
 	//string ipaddress("192.168.1.201");		//kougei dai
 
 	CVelodyneInterface velodyne;

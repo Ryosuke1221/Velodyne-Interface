@@ -41,7 +41,8 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		initVisualizer();
 		//velodyne.ReadAndShowOne("\../savedfolder/20181017_0242_45_080.pcd");
 		//velodyne.ReadAndShowOne("\../savedfolder/20181017_0243_07_597.pcd");
-		ReadAndShowOne("\../savedfolder/20190829_1434_16_859.pcd");			//for making it be plate
+		//ReadAndShowOne("\../savedfolder/20190829_1434_16_859.pcd");			//for making it be plate
+		ReadAndShowOne("\../savedfolder/20200119_1101_51_127.pcd");			//for making it be plate
 
 																							//20181017_0242_56_345
 																							//20181017_0243_07_597
@@ -1036,6 +1037,8 @@ void CVelodyneInterface::ToggleWrite() {
 
 	CTimeString time;
 
+	int num_data = 0;
+
 	////ï`âÊÇÃÉãÅ[Év
 	cout << "Press SPACE to screenshot" << endl;
 	while (!m_viewer->wasStopped()) {
@@ -1060,10 +1063,20 @@ void CVelodyneInterface::ToggleWrite() {
 			}
 
 			if (b_AttemptCapture == true) {
-				//pcl::io::savePCDFile<PointType>("..\savedfolder/" + time.getTimeStirng() + ".pcd", *m_PointCloud_ConstPtr);
-				pcl::io::savePCDFile<PointType>("\../savedfolder/" + time.getTimeString() + ".pcd", *m_PointCloud_ConstPtr);
+				string filename_;
+				filename_ = time.getTimeString() + ".pcd";
+				//filename_ = to_string(num_data);
+				//if (filename_.size() < 4) filename_ = "0" + filename_;
+				//if (filename_.size() < 4) filename_ = "0" + filename_;
+				//if (filename_.size() < 4) filename_ = "0" + filename_;
+				//filename_ += ".pcd";
+
+				cout << filename_ << endl;
+				pcl::io::savePCDFile<PointType>("\../savedfolder/" + filename_, *m_PointCloud_ConstPtr);
 				b_AttemptCapture = false;
-				cout << "Written!" << endl;
+				cout << "Å™Written!" << endl;
+				num_data++;
+
 			}
 		}
 
