@@ -98,7 +98,9 @@ void CVelodyneInterface::all(string ipaddress, string port)
 
 		//ShowOnlySquent();
 		//ShowOnlySquent("\../savedfolder/sequent/", 14);
-		ShowOnlySequent("\../savedfolder/sequent/");
+		//ShowOnlySequent("\../savedfolder/sequent/");
+		ShowOnlySequent("\../savedfolder/naraha summer/sequent/");
+		//ShowOnlySequent("\../savedfolder/20200119/PointCloud/");
 		break;
 
 	case EN_handregistration:
@@ -461,10 +463,18 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_) {
 
 	string filename_;
 
-	//01
+	enum OPTION_SEQUENT {
+		EN_ReadBefore = 1,
+		EN_SequentlyRead,
+		EN_DifferentName
+	};
+
+	OPTION_SEQUENT option_;
+	option_ = EN_ReadBefore;
+
+	if (option_ == EN_ReadBefore)
 	{
 		vector<pcl::PointCloud<PointType>::Ptr> cloud_read_vec;
-
 		//read all files
 		int num_read = 0;
 		while (1) {
@@ -475,65 +485,60 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_) {
 			if (filename_.size() < 3) filename_ = "0" + filename_;
 			filename_ = foldername_ + filename_ + ".pcd";
 			pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-			if(-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
+			if (-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
 			cloud_read_vec.push_back(cloud_);
 
 			cout << "PC(" << num_read << ") number :" << cloud_->size() << endl;
 
 			num_read++;
 		}
-
 		//show all PointCloud
 		cout << "show all PointCloud" << endl;
 		cout << "Press SPACE to switch" << endl;
 		int index = 0;
 		cout << "showing :" << 0 << endl;
 		while (!m_viewer->wasStopped()) {
-
 			//change PointCloud
 			short key_num = GetAsyncKeyState(VK_SPACE);
 			if ((key_num & 1) == 1) {
 				if (index + 1 < num_read)	index++;
 				cout << "showing :" << index << endl;
 			}
-
 			ShowPcdFile(cloud_read_vec[index]);
-
 			//escape
 			short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
 			if ((key_num_esc & 1) == 1) {
 				cout << "toggled!" << endl;
 				break;
 			}
-
 		}
+	}
 
+	else if (option_ == EN_SequentlyRead)
+	{
 
 	}
+
 
 	////02
 	////ƒgƒOƒ‹‚ð‰Ÿ‚³‚ê‚é‚½‚Ñ‚É“Ç‚Ýž‚ÞD
 	//{
-
+	//	int num_read = 0;
 	//	int index = 0;
 	//	bool b_first = true;
 	//	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-
 	//	while (!m_viewer->wasStopped()) {
-
 	//		//change PointCloud
 	//		short key_num = GetAsyncKeyState(VK_SPACE);
 	//		if (((key_num & 1) == 1) || b_first) {
 	//			//if(!b_first && index + 1 < num_PC)	index++;
 	//			if (!b_first) {
-	//			
 	//				if(index + 1 < num_PC) index++;
 	//				else {
 	//					cout << "Error! : PointCloud number" << endl;
 	//					continue;
 	//				}
 	//			}	
-
 	//			cout << "reading :" << index << endl;
 	//			string filename_;
 	//			filename_ = to_string(index);
@@ -544,20 +549,17 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_) {
 	//			cout << "showing :" << index << endl;
 	//			b_first = false;
 	//		}
-
 	//		ShowPcdFile(cloud_);
-
 	//		//escape
 	//		short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
 	//		if ((key_num_esc & 1) == 1) {
 	//			cout << "toggled!" << endl;
 	//			break;
 	//		}
-
-
 	//	}
-
 	//}
+	//don't know finish filename
+	//if through filename which is not, infinit loop occur,so I should preread final filename
 
 }
 
