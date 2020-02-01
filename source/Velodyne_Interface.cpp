@@ -463,225 +463,22 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_) {
 
 	enum OPTION_SEQUENT {
 		EN_ReadBefore = 1,
-		EN_SequentlyRead,
-		EN_DifferentName
+		EN_DifferentName_summer,
+		EN_DifferentName_winter
 	};
 
 	OPTION_SEQUENT option_;
 	//option_ = EN_ReadBefore;
-	option_ = EN_SequentlyRead;
+	option_ = EN_DifferentName_winter;
 
-	if (option_ == EN_ReadBefore)
-	{
-		vector<pcl::PointCloud<PointType>::Ptr> cloud_read_vec;
-		//read all files
-		int num_read = 0;
-		while (1) {
-			cout << "reading :" << num_read << endl;
-			string filename_;
-			filename_ = to_string(num_read);
-			if (filename_.size() < 3) filename_ = "0" + filename_;
-			if (filename_.size() < 3) filename_ = "0" + filename_;
-			filename_ = foldername_ + filename_ + ".pcd";
-			pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-			if (-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
-			cloud_read_vec.push_back(cloud_);
+	if (option_ == EN_ReadBefore) SequentBeforeRead_2019Naraha(foldername_);
 
-			cout << "PC(" << num_read << ") number :" << cloud_->size() << endl;
+	else if (option_ == EN_DifferentName_summer) SequentDifferentName_2019Naraha(foldername_);
 
-			num_read++;
-		}
-		//show all PointCloud
-		cout << "show all PointCloud" << endl;
-		cout << "Press SPACE to switch" << endl;
-		int index = 0;
-		cout << "showing :" << 0 << endl;
-		while (!m_viewer->wasStopped()) {
-			//change PointCloud
-			short key_num = GetAsyncKeyState(VK_SPACE);
-			if ((key_num & 1) == 1) {
-				if (index + 1 < num_read)	index++;
-				cout << "showing :" << index << endl;
-			}
-			ShowPcdFile(cloud_read_vec[index]);
-			//escape
-			short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
-			if ((key_num_esc & 1) == 1) {
-				cout << "toggled!" << endl;
-				break;
-			}
-		}
-	}
+	else if (option_ == EN_DifferentName_winter) SequentDifferentName_2020Naraha(foldername_);
 
-	else if (option_ == EN_SequentlyRead)
-	{
-		bool b_summer = true;
-		b_summer = false;
+	cout << "finished" << endl;
 
-		if(b_summer)
-		{
-			int num_PC = 14;
-			int num_read = 0;
-			int index = 0;
-			bool b_first = true;
-			pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-			while (!m_viewer->wasStopped()) {
-				//change PointCloud
-				short key_num = GetAsyncKeyState(VK_SPACE);
-				if (((key_num & 1) == 1) || b_first) {
-					//if(!b_first && index + 1 < num_PC)	index++;
-					if (!b_first) {
-						if (index + 1 < num_PC) index++;
-						else {
-							cout << "Error! : PointCloud number" << endl;
-							continue;
-						}
-					}
-					cout << "reading :" << index << endl;
-					string filename_;
-					filename_ = to_string(index);
-					if (filename_.size() < 3) filename_ = "0" + filename_;
-					if (filename_.size() < 3) filename_ = "0" + filename_;
-					filename_ = foldername_ + filename_ + ".pcd";
-					pcl::io::loadPCDFile(filename_, *cloud_);
-					cout << "showing :" << index << endl;
-					b_first = false;
-				}
-				ShowPcdFile(cloud_);
-				//escape
-				short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
-				if ((key_num_esc & 1) == 1) {
-					cout << "toggled!" << endl;
-					break;
-				}
-			}
-
-		}
-		else
-		{
-			foldername_ = "\../savedfolder/20200119/PointCloud/";
-
-			string filename_start = "20200119_1732_46_243.pcd";
-			string filename_end = "20200119_1753_30_556.pcd";
-			//20200119_1732_46_243
-			//20200119_1753_30_556
-
-			//初回以外はindexに追加して読み込んでいた．
-			//こちらでは統一したい．
-
-			//とりあえずスタートから総当たりで読み込んでいく．総当たり時の文字列生成．
-			//外れだったら次の文字列を生成．外れ判定はif (-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
-
-			//スペースが押されたら読み込む．
-			//このタイミングで名前のサーチをする．
-
-			pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-			bool b_first = true;
-			int index = 0;
-
-			int i_minute = 34;
-			int i_second = 10;
-			int i_millisecond = 0;
-
-			//int i_minute = 32;
-			//int i_second = 0;
-			//int i_millisecond = 0;
-			string filename_;
-			string filename_allfound;
-
-
-			while (!m_viewer->wasStopped())
-			{
-
-				if (b_first)
-				{
-					pcl::io::loadPCDFile(foldername_ + filename_start, *cloud_);
-					b_first = false;
-				}
-				else
-				{
-					short key_num = GetAsyncKeyState(VK_SPACE);
-					if ((key_num & 1) == 1)
-					{
-						bool b_found = false;
-
-						//name search
-						//minute:32-60, second:00-60, millisecond:000-999
-						//20200119_1734_10_989.pcd
-						do
-						{
-							string s_minute;
-							s_minute = to_string(i_minute);
-							if (s_minute.size() < 2) s_minute = "0" + s_minute;
-
-							do
-							{
-								string s_second;
-								s_second = to_string(i_second);
-								if (s_second.size() < 2) s_second = "0" + s_second;
-
-								do
-								{
-									string s_millisecond;
-									s_millisecond = to_string(i_millisecond);
-									if (s_millisecond.size() < 3) s_millisecond = "0" + s_millisecond;
-									if (s_millisecond.size() < 3) s_millisecond = "0" + s_millisecond;
-
-									filename_ = s_minute + "_" + s_second + "_" + s_millisecond + ".pcd";
-
-									//filename_
-									if (-1 != pcl::io::loadPCDFile(foldername_ + "20200119_17" + filename_, *cloud_))	//found
-									//if (-1 != pcl::io::loadPCDFile(filename_temp, *cloud_))	//found
-									{
-										b_found = true;
-										cout << "Find:" << "20200119_17" + filename_ << endl;
-										cout << "index:" << index << endl;
-										index++;
-										filename_allfound += "20200119_17" + filename_ + "\n";
-										cout << "show all found file:" << endl;
-										cout << filename_allfound << endl;
-									}
-									cout << endl;
-
-									i_millisecond++;
-									if (b_found) break;
-								} while (i_millisecond<1000);
-								if (i_millisecond == 1000)
-								{
-									i_millisecond = 0;
-									i_second++;
-								}
-
-								if (b_found) break;
-							} while (i_second < 60);
-							if (i_second == 60)
-							{
-								i_second = 0;
-								i_minute++;
-							}
-
-							if (b_found) break;
-						} while (i_minute<60);
-						if (i_minute == 60) i_minute = 0;
-
-					}
-
-					if (filename_ == filename_end) break;
-
-				}
-
-				ShowPcdFile(cloud_);
-				//escape
-				short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
-				if ((key_num_esc & 1) == 1) {
-					cout << "toggled!" << endl;
-					break;
-				}
-
-			}
-		}
-
-	}
 
 	//don't know finish filename
 	//if through filename which is not, infinit loop occur,so I should preread final filename
@@ -1335,7 +1132,8 @@ bool CVelodyneInterface::connect(string ipaddress, string port)
 }
 
 //boolの方がいい？
-bool CVelodyneInterface::disconnect() {
+bool CVelodyneInterface::disconnect()
+{
 
 	//センサデータ取得のループを終わらせる処理と，スレッドを終わらせる処理を書く．
 	grabber->stop();
@@ -1348,7 +1146,8 @@ bool CVelodyneInterface::disconnect() {
 }
 
 //センサデータを1フレーム分取得する，繰り返されるべき関数
-void CVelodyneInterface::getPC_oneframe_cb(const pcl::PointCloud<PointType>::ConstPtr& ptr) {	//call back?
+void CVelodyneInterface::getPC_oneframe_cb(const pcl::PointCloud<PointType>::ConstPtr& ptr) 
+{	//call back?
 
 	boost::mutex::scoped_lock lock(m_mutex);
 	m_PointCloud_ConstPtr = ptr;
@@ -1360,3 +1159,291 @@ void CVelodyneInterface::getPC_oneframe_cb(const pcl::PointCloud<PointType>::Con
 	}
 
 }
+
+void CVelodyneInterface::SequentBeforeRead_2019Naraha(string foldername_)
+{
+	vector<pcl::PointCloud<PointType>::Ptr> cloud_read_vec;
+	//read all files
+	int num_read = 0;
+	while (1) {
+		cout << "reading :" << num_read << endl;
+		string filename_;
+		filename_ = to_string(num_read);
+		if (filename_.size() < 3) filename_ = "0" + filename_;
+		if (filename_.size() < 3) filename_ = "0" + filename_;
+		filename_ = foldername_ + filename_ + ".pcd";
+		pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
+		if (-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
+		cloud_read_vec.push_back(cloud_);
+
+		cout << "PC(" << num_read << ") number :" << cloud_->size() << endl;
+
+		num_read++;
+	}
+	//show all PointCloud
+	cout << "show all PointCloud" << endl;
+	cout << "Press SPACE to switch" << endl;
+	int index = 0;
+	cout << "showing :" << 0 << endl;
+	while (!m_viewer->wasStopped()) {
+		//change PointCloud
+		short key_num = GetAsyncKeyState(VK_SPACE);
+		if ((key_num & 1) == 1) {
+			if (index + 1 < num_read)	index++;
+			cout << "showing :" << index << endl;
+		}
+		ShowPcdFile(cloud_read_vec[index]);
+		//escape
+		short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
+		if ((key_num_esc & 1) == 1) {
+			cout << "toggled!" << endl;
+			break;
+		}
+	}
+
+}
+
+void CVelodyneInterface::SequentDifferentName_2019Naraha(string foldername_) 
+{
+	int num_PC = 14;
+	int num_read = 0;
+	int index = 0;
+	bool b_first = true;
+	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
+	while (!m_viewer->wasStopped()) {
+		//change PointCloud
+		short key_num = GetAsyncKeyState(VK_SPACE);
+		if (((key_num & 1) == 1) || b_first) {
+			//if(!b_first && index + 1 < num_PC)	index++;
+			if (!b_first) {
+				if (index + 1 < num_PC) index++;
+				else {
+					cout << "Error! : PointCloud number" << endl;
+					continue;
+				}
+			}
+			cout << "reading :" << index << endl;
+			string filename_;
+			filename_ = to_string(index);
+			if (filename_.size() < 3) filename_ = "0" + filename_;
+			if (filename_.size() < 3) filename_ = "0" + filename_;
+			filename_ = foldername_ + filename_ + ".pcd";
+			pcl::io::loadPCDFile(filename_, *cloud_);
+			cout << "showing :" << index << endl;
+			b_first = false;
+		}
+		ShowPcdFile(cloud_);
+		//escape
+		short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
+		if ((key_num_esc & 1) == 1) {
+			cout << "toggled!" << endl;
+			break;
+		}
+	}
+}
+
+void CVelodyneInterface::SequentDifferentName_2020Naraha(string foldername_)
+{
+	foldername_ = "\../savedfolder/20200119/PointCloud/";
+
+	bool b_read = false;
+	b_read = true;
+
+	//20200119_1732_46_243
+	//20200119_1753_30_556
+
+	//初回以外はindexに追加して読み込んでいた．
+	//こちらでは統一したい．
+
+	//とりあえずスタートから総当たりで読み込んでいく．総当たり時の文字列生成．
+	//外れだったら次の文字列を生成．外れ判定はif (-1 == pcl::io::loadPCDFile(filename_, *cloud_)) break;
+
+	//スペースが押されたら読み込む．
+	//このタイミングで名前のサーチをする．
+
+	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
+
+	string filename_start = "20200119_1732_46_243.pcd";
+	string filename_end = "20200119_1753_30_556.pcd";
+
+
+	if (b_read)
+	{
+		CTimeString time_;
+		vector<string> filename_vec;
+		bool b_first = true;
+		int index_ = 0;
+
+		ifstream ifs_(foldername_+ "_ExistingFiles.txt");
+		string str_;
+		if (ifs_.fail()) cout << "Error: file could not be read." << endl;
+		else {
+			while (getline(ifs_, str_))
+			{
+				if(str_.size()>2) filename_vec.push_back(str_);
+			}
+			ifs_.close();
+		}
+
+		cout << "file number:" << filename_vec.size() << endl;
+
+		////最後のは余分．読み込み時の列数で対応
+
+		while (!m_viewer->wasStopped()) {
+			//change PointCloud
+			short key_num = GetAsyncKeyState(VK_SPACE);
+			if ((key_num & 1) == 1) {
+				pcl::io::loadPCDFile(foldername_ + filename_vec[index_], *cloud_);
+				cout << "showing:" << filename_vec[index_] << endl;
+
+				index_++;
+				if (index_ > filename_vec.size())
+				{
+					cout << "index over" << endl;
+					break;
+				}
+
+			}
+			ShowPcdFile(cloud_);
+			//escape
+			short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
+			if ((key_num_esc & 1) == 1) {
+				cout << "toggled!" << endl;
+				break;
+			}
+		}
+	}
+
+	else
+	{
+
+		bool b_first = true;
+		int index = 0;
+
+		////20200119_1753_29_886.pcd
+		//int i_minute = 53;
+		//int i_second = 29;
+		//int i_millisecond = 885;
+
+
+		int i_minute = 34;
+		int i_second = 10;
+		int i_millisecond = 0;
+
+		//int i_minute = 32;
+		//int i_second = 0;
+		//int i_millisecond = 0;
+		string filename_;
+		string filename_allfound;
+
+		while (!m_viewer->wasStopped())
+		{
+
+			if (b_first)
+			{
+				pcl::io::loadPCDFile(foldername_ + filename_start, *cloud_);
+				b_first = false;
+				index++;
+				filename_allfound += filename_start + "\n";
+
+			}
+			else
+			{
+				short key_num = GetAsyncKeyState(VK_SPACE);
+
+				if (1)
+					//if ((key_num & 1) == 1)
+				{
+					bool b_found = false;
+
+					//name search
+					//minute:32-60, second:00-60, millisecond:000-999
+					//20200119_1734_10_989.pcd
+					do
+					{
+						string s_minute;
+						s_minute = to_string(i_minute);
+						if (s_minute.size() < 2) s_minute = "0" + s_minute;
+
+						do
+						{
+							string s_second;
+							s_second = to_string(i_second);
+							if (s_second.size() < 2) s_second = "0" + s_second;
+
+							do
+							{
+								string s_millisecond;
+								s_millisecond = to_string(i_millisecond);
+								if (s_millisecond.size() < 3) s_millisecond = "0" + s_millisecond;
+								if (s_millisecond.size() < 3) s_millisecond = "0" + s_millisecond;
+
+								filename_ = s_minute + "_" + s_second + "_" + s_millisecond + ".pcd";
+
+								//filename_
+								if (-1 != pcl::io::loadPCDFile(foldername_ + "20200119_17" + filename_, *cloud_))	//found
+								//if (-1 != pcl::io::loadPCDFile(filename_temp, *cloud_))	//found
+								{
+									b_found = true;
+									cout << "Find:" << "20200119_17" + filename_ << endl;
+									index++;
+									filename_allfound += "20200119_17" + filename_ + "\n";
+									cout << "show all found file:" << endl;
+									cout << filename_allfound << endl;
+								}
+								cout << "index:" << index << endl;
+
+								cout << endl;
+
+								i_millisecond++;
+								if (b_found) break;
+							} while (i_millisecond < 1000);
+							if (i_millisecond == 1000)
+							{
+								i_millisecond = 0;
+								i_second++;
+							}
+
+							if (b_found) break;
+						} while (i_second < 60);
+						if (i_second == 60)
+						{
+							i_second = 0;
+							i_minute++;
+						}
+
+						if (b_found) break;
+					} while (i_minute < 60);
+					if (i_minute == 60) i_minute = 0;
+
+				}
+
+
+			}
+
+			if (filename_end.compare("20200119_17" + filename_) == 0)
+			{
+				cout << "final file" << endl;
+				std::ofstream ofs_save;
+				ofs_save.open(foldername_ + "_ExistingFiles.txt", std::ios::out);
+				ofs_save << filename_allfound;
+				ofs_save.close();
+				break;
+			}
+
+
+			ShowPcdFile(cloud_);
+			//escape
+			short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
+			if ((key_num_esc & 1) == 1) {
+				cout << "toggled!" << endl;
+				break;
+			}
+		}
+
+	}
+
+
+
+}
+

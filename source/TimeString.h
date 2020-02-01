@@ -88,6 +88,8 @@ public:
 			}
 			ofs_save << endl;
 		}
+		ofs_save.close();
+
 	}
 
 };

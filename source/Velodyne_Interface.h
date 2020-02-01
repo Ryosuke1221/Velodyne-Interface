@@ -200,6 +200,12 @@ public:
 
 	void HandRegistration(string foldername_, int num_start);
 
+	void SequentBeforeRead_2019Naraha(string foldername_);
+	void SequentDifferentName_2019Naraha(string foldername_);
+	void SequentDifferentName_2020Naraha(string foldername_);
+
+
+
 };
 
 ////example
