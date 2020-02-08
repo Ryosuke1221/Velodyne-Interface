@@ -217,7 +217,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 	bool b_escaped = false;
 	bool b_break = false;
 
-
 	enum KEYNUM {
 		NONE ,
 		UP ,
@@ -235,7 +234,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 
 	//input txt
-
 	vector<Eigen::Matrix4d>	HM_displacement_vec;
 	std::string filename_txt;
 	filename_txt = foldername_ + "/tramsformation.txt";
@@ -308,7 +306,7 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 
 			//ground
 			bool b_RemoveGround;
-			b_RemoveGround = false;
+			b_RemoveGround = true;
 			if(b_RemoveGround)
 			{
 				double th_height;
@@ -322,9 +320,7 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 					cloud_moving->push_back(cloud_temp->points[i]);
 				}
 			}
-
 			b_makeNewPC = false;
-
 		}
 
 		//https://www.slideshare.net/masafuminoda/pcl-11030703
@@ -423,7 +419,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 
 		default:
 			break;
-
 		}
 
 		if (!(key_ == NONE || key_ == ENTER)) {
