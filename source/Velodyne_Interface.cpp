@@ -94,13 +94,9 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	case EN_sequentshow:
 		//sequent show
 		initVisualizer();
-		//ReadAndShowOne("\../savedfolder/20190823_1543_22_646.pcd");			//for making it be plate
-
-		//ShowOnlySquent();
-		//ShowOnlySquent("\../savedfolder/sequent/", 14);
-		//ShowOnlySequent("\../savedfolder/sequent/");
 		ShowOnlySequent("\../savedfolder/naraha summer/sequent");
 		//ShowOnlySequent("\../savedfolder/20200119/PointCloud/");
+
 		break;
 
 	case EN_handregistration:
