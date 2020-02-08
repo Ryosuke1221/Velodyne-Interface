@@ -25,6 +25,15 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 using namespace std;
 typedef pcl::PointXYZI PointType;
 
+namespace Eigen {
+
+	/// Extending Eigen namespace by adding frequently used matrix type
+	typedef Eigen::Matrix<double, 6, 6> Matrix6d;
+	typedef Eigen::Matrix<double, 6, 1> Vector6d;
+
+}    // namespace Eigen
+
+
 class CVelodyneInterface
 {
 private:
@@ -192,5 +201,13 @@ public:
 	void ShowOnlySequent(string foldername_);
 
 	void HandRegistration(string foldername_);
+
+	Eigen::Matrix4d calcHomogeneousMatrixFromVector6d(double X_, double Y_, double Z_,
+		double Roll_, double Pitch_, double Yaw_);
+
+	Eigen::Vector6d calcVector6dFromHomogeneousMatrix(Eigen::Matrix4d transformation_Node);
+
+	Eigen::Affine3f calcAffine3fFromHomogeneousMatrix(Eigen::Matrix4d input_Mat);
+
 
 };

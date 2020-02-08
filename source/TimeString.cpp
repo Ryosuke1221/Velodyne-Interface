@@ -251,7 +251,7 @@ bool CTimeString::getFileNames(std::string folderPath, std::vector<std::string> 
 bool CTimeString::getFileNames_extension(std::string folderPath, std::vector<std::string> &file_names, string s_extension)
 {
 	vector<string> filenames_;
-	getFileNames(folderPath, filenames_);
+	bool b_success = getFileNames(folderPath, filenames_);
 	for (int i = 0; i < filenames_.size(); i++)
 	{
 		int i_find = filenames_[i].find(s_extension);
@@ -259,6 +259,8 @@ bool CTimeString::getFileNames_extension(std::string folderPath, std::vector<std
 		file_names.push_back(filenames_[i]);
 		cout << file_names.back() << endl;
 	}
+
+	return b_success;
 }
 
 
