@@ -105,7 +105,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 
 	case EN_handregistration:
 		initVisualizer();
-		HandRegistration("\../savedfolder/sequent/",0);
+		HandRegistration("\../savedfolder/naraha summer/sequent/",0);
 		break;
 
 	}
@@ -118,6 +118,11 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 	cout << "HandRegistration started!" << endl;
 	Sleep(1 * 1000);
+
+	std::string filename_;
+	//input txt name
+	filename_ = foldername_ + "tramsformation.txt";
+
 
 	pcl::PointCloud<PointType>::Ptr cloud_show(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_show_static(new pcl::PointCloud<PointType>());
@@ -165,57 +170,28 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 
 	vector<SState> state_vec;
 
+
 	//input txt
 	{
-		std::string filename_inputTXT;
-		//input txt name
-		filename_inputTXT = "\../savedfolder/tramsformation.txt";
+		vector<vector<double>> trajectory_vec_vec;
+		trajectory_vec_vec = time_.getVecVecFromCSV<double>(filename_);
 
-		ifstream ifs_(filename_inputTXT);
-		string str_;
-
-		if (ifs_.fail()) cout << "Error: file could not be read." << endl;
-
-		while (getline(ifs_, str_)) {
-
-			vector<int> find_vec = time_.find_all(str_, ",");
-
-			string s_index, s_x, s_y, s_z, s_roll, s_pitch, s_yaw;
-			int index_;
-			//double x_, y_, z_, roll_, pitch_, yaw_;
+		for (int i = 0; i < trajectory_vec_vec.size(); i++)
+		{
 			SState state;
-
-			s_index = str_.substr(0, find_vec[0] - 0);
-			s_x = str_.substr(find_vec[0] + 1, find_vec[1] - (find_vec[0] + 1));
-			s_y = str_.substr(find_vec[1] + 1, find_vec[2] - (find_vec[1] + 1));
-			s_z = str_.substr(find_vec[2] + 1, find_vec[3] - (find_vec[2] + 1));
-			s_roll = str_.substr(find_vec[3] + 1, find_vec[4] - (find_vec[3] + 1));
-			s_pitch = str_.substr(find_vec[4] + 1, find_vec[5] - (find_vec[4] + 1));
-			s_yaw = str_.substr(find_vec[5] + 1, str_.size() - (find_vec[5] + 1));
-
-			index_ = stoi(s_index);
-			state.x_ = stod(s_x);
-			state.y_ = stod(s_y);
-			state.z_ = stod(s_z);
-			state.roll_ = stod(s_roll);
-			state.pitch_ = stod(s_pitch);
-			state.yaw_ = stod(s_yaw);
-
+			state.x_ = trajectory_vec_vec[i][1];
+			state.y_ = trajectory_vec_vec[i][2];
+			state.z_ = trajectory_vec_vec[i][3];
+			state.roll_ = trajectory_vec_vec[i][4];
+			state.pitch_ = trajectory_vec_vec[i][5];
+			state.yaw_ = trajectory_vec_vec[i][6];
 			state_vec.push_back(state);
-
 		}
-
-		ifs_.close();
-
-		cout << "state_vec size = " << state_vec.size() << endl;
-
 	}
-
+	cout << "state_vec size = " << state_vec.size() << endl;
 
 	KEYNUM key_;
-
 	double x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta;
-
 	double x_delta_init, y_delta_init, z_delta_init, roll_delta_init, pitch_delta_init, yaw_delta_init;
 	x_delta_init = y_delta_init = z_delta_init = roll_delta_init = pitch_delta_init = yaw_delta_init = 0.;
 
@@ -279,6 +255,9 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
 
 			//ground
+			bool b_RemoveGround;
+			b_RemoveGround = true;
+			if(b_RemoveGround)
 			{
 				double th_height;
 				th_height = -0.1;
@@ -428,31 +407,23 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	}
 
 	//output txt
-	if(!b_escaped)
+	if (!b_escaped)
 	{
-		std::string filename_outputTXT;
-		filename_outputTXT = "\../savedfolder/tramsformation.txt";
-
-		std::ofstream ofs_;
-		ofs_.open(filename_outputTXT, std::ios::out);
-		for (int i = 0; i < state_vec.size(); i++) {
-			ofs_ << i;
-			ofs_ << ",";
-			ofs_ << state_vec[i].x_;
-			ofs_ << ",";
-			ofs_ << state_vec[i].y_;
-			ofs_ << ",";
-			ofs_ << state_vec[i].z_;
-			ofs_ << ",";
-			ofs_ << state_vec[i].roll_;
-			ofs_ << ",";
-			ofs_ << state_vec[i].pitch_;
-			ofs_ << ",";
-			ofs_ << state_vec[i].yaw_ << endl;
+		vector<vector<double>> trajectory_vec_vec;
+		for (int i = 0; i < state_vec.size(); i++)
+		{
+			vector<double> trajectory_vec;
+			trajectory_vec.push_back(i);
+			trajectory_vec.push_back(state_vec[i].x_);
+			trajectory_vec.push_back(state_vec[i].y_);
+			trajectory_vec.push_back(state_vec[i].z_);
+			trajectory_vec.push_back(state_vec[i].roll_);
+			trajectory_vec.push_back(state_vec[i].pitch_);
+			trajectory_vec.push_back(state_vec[i].yaw_);
+			trajectory_vec_vec.push_back(trajectory_vec);
 		}
-		ofs_.close();
+		time_.getCSVFromVecVec(trajectory_vec_vec,filename_);
 		cout << "file has saved!" << endl;
-
 	}
 	else cout << "file has not saved!" << endl;
 
@@ -1246,8 +1217,8 @@ void CVelodyneInterface::SequentDifferentName_2020Naraha(string foldername_)
 {
 	foldername_ = "\../savedfolder/20200119/PointCloud/";
 
-	bool b_read = false;
-	b_read = true;
+	bool b_read_text = false;
+	b_read_text = true;
 
 	//20200119_1732_46_243
 	//20200119_1753_30_556
@@ -1267,7 +1238,7 @@ void CVelodyneInterface::SequentDifferentName_2020Naraha(string foldername_)
 	string filename_end = "20200119_1753_30_556.pcd";
 
 
-	if (b_read)
+	if (b_read_text)
 	{
 		CTimeString time_;
 		vector<string> filename_vec;
