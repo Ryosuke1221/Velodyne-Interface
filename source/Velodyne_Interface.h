@@ -189,36 +189,8 @@ public:
 
 	}
 
-	//typedef struct CRobotState {
-	//public:
-	//	double x;
-	//	double y;
-	//	double z;
-	//};
-
 	void ShowOnlySequent(string foldername_);
 
-	void HandRegistration(string foldername_, int num_start);
-
-	void SequentBeforeRead_2019Naraha(string foldername_);
-	void SequentDifferentName_2019Naraha(string foldername_);
-	void SequentDifferentName_2020Naraha(string foldername_);
-
-
+	void HandRegistration(string foldername_);
 
 };
-
-////example
-//#include"Velodyne_Interface.hpp"
-//int main() {
-//	boost::mutex mutex;
-//	CVelodyneInterface velodyne(mutex);
-//
-//	velodyne.initVisualizer();			//Visualizerの初期化
-//	velodyne.connect();					//データ取得開始
-//	velodyne.show_2D();					//2DのPointCloudを取得
-//	velodyne.disconnect();				//データ取得終了
-//	return 0;
-//
-//	//get2DPointCloud()で2Dのポイントクラウドを取得可能
-//}

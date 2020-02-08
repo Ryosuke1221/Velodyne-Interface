@@ -213,3 +213,52 @@ std::vector<int> CTimeString::find_all(const std::string str, const std::string 
 
 	return result;
 }
+
+bool CTimeString::getFileNames(std::string folderPath, std::vector<std::string> &file_names)
+{
+	//https://qiita.com/tes2840/items/8d295b1caaf10eaf33ad
+	//#include <windows.h>
+	//#include <vector>
+	//#include <string>
+	//#include <iostream>
+	HANDLE hFind;
+	WIN32_FIND_DATA win32fd;
+	std::string search_name = folderPath + "\\*";
+
+	hFind = FindFirstFile(search_name.c_str(), &win32fd);
+
+	if (hFind == INVALID_HANDLE_VALUE) {
+		throw std::runtime_error("file not found");
+		return false;
+	}
+
+	do
+	{
+		if (win32fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			cout << win32fd.cFileName << "(directory)" << endl;
+		}
+		else {
+			file_names.push_back(win32fd.cFileName);
+			//cout << file_names.back() << endl;
+		}
+	} while (FindNextFile(hFind, &win32fd));
+
+	FindClose(hFind);
+
+	return true;
+}
+
+bool CTimeString::getFileNames_extension(std::string folderPath, std::vector<std::string> &file_names, string s_extension)
+{
+	vector<string> filenames_;
+	getFileNames(folderPath, filenames_);
+	for (int i = 0; i < filenames_.size(); i++)
+	{
+		int i_find = filenames_[i].find(s_extension);
+		if (i_find == std::string::npos) continue;
+		file_names.push_back(filenames_[i]);
+		cout << file_names.back() << endl;
+	}
+}
+
+

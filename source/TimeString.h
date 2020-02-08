@@ -92,4 +92,7 @@ public:
 
 	}
 
+	bool getFileNames(std::string folderPath, std::vector<std::string> &file_names);
+	bool getFileNames_extension(std::string folderPath, std::vector<std::string> &file_names,string s_extension);
+
 };
