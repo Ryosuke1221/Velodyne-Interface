@@ -123,7 +123,6 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	//input txt name
 	filename_ = foldername_ + "tramsformation.txt";
 
-
 	pcl::PointCloud<PointType>::Ptr cloud_show(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_show_static(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_moving(new pcl::PointCloud<PointType>());
@@ -165,17 +164,14 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		double roll_;
 		double pitch_;
 		double yaw_;
-
 	};
 
 	vector<SState> state_vec;
-
 
 	//input txt
 	{
 		vector<vector<double>> trajectory_vec_vec;
 		trajectory_vec_vec = time_.getVecVecFromCSV<double>(filename_);
-
 		for (int i = 0; i < trajectory_vec_vec.size(); i++)
 		{
 			SState state;
@@ -194,9 +190,6 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 	double x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta;
 	double x_delta_init, y_delta_init, z_delta_init, roll_delta_init, pitch_delta_init, yaw_delta_init;
 	x_delta_init = y_delta_init = z_delta_init = roll_delta_init = pitch_delta_init = yaw_delta_init = 0.;
-
-	//x_delta = 0.;	y_delta = 0.;	z_delta = 0.;	roll_delta = 0.;	pitch_delta = 0.;	yaw_delta = 0.;
-
 
 	while (1) {
 
@@ -401,9 +394,7 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		if (cloud_show->size() != 0) {
 			//cout << "show!" << endl;
 			ShowPcdFile(cloud_show);
-
 		}
-
 	}
 
 	//output txt
@@ -426,7 +417,6 @@ void CVelodyneInterface::HandRegistration(string foldername_,int num_start) {
 		cout << "file has saved!" << endl;
 	}
 	else cout << "file has not saved!" << endl;
-
 }
 
 
