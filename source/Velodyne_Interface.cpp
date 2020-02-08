@@ -194,10 +194,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 	cout << "HandRegistration started!" << endl;
 	Sleep(1 * 1000);
 
-	std::string filename_txt;
-	//input txt name
-	filename_txt = foldername_ + "/tramsformation.txt";
-
 	pcl::PointCloud<PointType>::Ptr cloud_show(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_show_static(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_moving(new pcl::PointCloud<PointType>());
@@ -205,10 +201,10 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 	pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
 
 	CTimeString time_;
-	vector<string> filenames_;
-	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 
 	Eigen::Affine3f Trans_;
+	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
+	Eigen::Matrix4d HM_Trans_now = Eigen::Matrix4d::Identity();
 
 	double disp_translation = 0.;
 	double disp_rotation = 0.;
@@ -216,10 +212,11 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 	disp_rotation = 0.5 * M_PI / 180.;
 
 	int index_PC_now = 0;
-
 	bool b_makeNewPC = true;
 	bool b_first = true;
 	bool b_escaped = false;
+	bool b_break = false;
+
 
 	enum KEYNUM {
 		NONE ,
@@ -232,73 +229,44 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 		ENTER ,
 		SUBTRACT
 	};
-
-	typedef struct SState {
-
-		double x_;
-		double y_;
-		double z_;
-		double roll_;
-		double pitch_;
-		double yaw_;
-	};
-
-	//input txt
-	vector<Eigen::Matrix4d>	HM_displacement_vec;
-	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
-	Eigen::Matrix4d HM_free_2 = Eigen::Matrix4d::Identity();
-	Eigen::Matrix4d HM_Trans_now = Eigen::Matrix4d::Identity();
-
-	{
-		vector<vector<double>> trajectory_vec_vec;
-		vector<SState> state_vec;
-
-		trajectory_vec_vec = time_.getVecVecFromCSV<double>(filename_txt);
-		for (int i = 0; i < trajectory_vec_vec.size(); i++)
-		{
-			SState state;
-			state.x_ = trajectory_vec_vec[i][1];
-			state.y_ = trajectory_vec_vec[i][2];
-			state.z_ = trajectory_vec_vec[i][3];
-			state.roll_ = trajectory_vec_vec[i][4];
-			state.pitch_ = trajectory_vec_vec[i][5];
-			state.yaw_ = trajectory_vec_vec[i][6];
-			state_vec.push_back(state);
-		}
-
-		{
-			vector<Eigen::Matrix4d>	HM_trajectory_vec;
-			for (int i = 0; i < state_vec.size(); i++)
-			{
-				Eigen::Matrix4d HM_trajectory = Eigen::Matrix4d::Identity();
-				HM_trajectory = calcHomogeneousMatrixFromVector6d(state_vec[i].x_, state_vec[i].y_, state_vec[i].z_,
-					state_vec[i].roll_, state_vec[i].pitch_, state_vec[i].yaw_);
-				HM_trajectory_vec.push_back(HM_trajectory);
-			}
-			for (int i = 0; i < HM_trajectory_vec.size(); i++)
-			{
-				if (i == 0)
-				{
-					HM_free = Eigen::Matrix4d::Identity();
-					//HM_displacement_vec.push_back(HM_trajectory_vec[i] * HM_free.inverse());
-					HM_displacement_vec.push_back(HM_free.inverse() * HM_trajectory_vec[i]);
-				}
-				else HM_displacement_vec.push_back(HM_trajectory_vec[i - 1].inverse() * HM_trajectory_vec[i]);
-			}
-		}
-		cout << "state_vec size = " << state_vec.size() << endl;
-		for (int i = 0; i < HM_displacement_vec.size(); i++)
-		{
-			cout << i << ":" << endl;
-			cout << HM_displacement_vec[i] << endl;
-
-		}
-	}
-
 	KEYNUM key_;
 
-	double x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta;
-	x_delta = y_delta = z_delta = roll_delta = pitch_delta = yaw_delta = 0.;
+	vector<string> filenames_;
+	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
+
+	//input txt
+
+	vector<Eigen::Matrix4d>	HM_displacement_vec;
+	std::string filename_txt;
+	filename_txt = foldername_ + "/tramsformation.txt";
+	{
+		vector<vector<double>> trajectory_vec_vec;
+		trajectory_vec_vec = time_.getVecVecFromCSV<double>(filename_txt);
+		vector<Eigen::Matrix4d>	HM_trajectory_vec;
+		for (int i = 0; i < trajectory_vec_vec.size(); i++)
+		{
+			Eigen::Matrix4d HM_trajectory = Eigen::Matrix4d::Identity();
+			HM_trajectory = calcHomogeneousMatrixFromVector6d(
+				trajectory_vec_vec[i][1],
+				trajectory_vec_vec[i][2],
+				trajectory_vec_vec[i][3],
+				trajectory_vec_vec[i][4],
+				trajectory_vec_vec[i][5],
+				trajectory_vec_vec[i][6]);
+			HM_trajectory_vec.push_back(HM_trajectory);
+		}
+		for (int i = 0; i < HM_trajectory_vec.size(); i++)
+		{
+			if (i == 0)
+			{
+				HM_free = Eigen::Matrix4d::Identity();
+				//HM_displacement_vec.push_back(HM_trajectory_vec[i] * HM_free.inverse());
+				HM_displacement_vec.push_back(HM_free.inverse() * HM_trajectory_vec[i]);
+			}
+			else HM_displacement_vec.push_back(HM_trajectory_vec[i - 1].inverse() * HM_trajectory_vec[i]);
+		}
+		cout << "HM_displacement_vec size = " << HM_displacement_vec.size() << endl;
+	}
 
 	while (1) {
 		//input next PointCloud
@@ -333,7 +301,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 			Trans_ = Eigen::Affine3f::Identity();
 
 			HM_free = Eigen::Matrix4d::Identity();
-			//for (int i = 0; i <= index_PC_now; i++) HM_free = HM_displacement_vec[i] * HM_free;
 			for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
 			HM_Trans_now = HM_free;
 			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
@@ -406,39 +373,32 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 
 		//determine transformation by key
 		switch (key_) {
-
 		case UP:
-			//y_delta += disp_translation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(0., disp_translation, 0., 0., 0., 0.)
 				* HM_Trans_now;
 			break;
 
 		case DOWN:
-			//y_delta -= disp_translation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(0., -disp_translation, 0., 0., 0., 0.)
 				* HM_Trans_now;
 			break;
 
 		case RIGHT:
-			//x_delta += disp_translation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(disp_translation, 0., 0., 0., 0., 0.)
 				* HM_Trans_now;
 			break;
 
 		case LEFT:
-			//x_delta -= disp_translation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(-disp_translation, 0., 0., 0., 0., 0.)
 				* HM_Trans_now;
 			break;
 
 		case TURN_R:
-			//yaw_delta -= disp_rotation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., 0., -disp_rotation)
 				* HM_Trans_now;
 			break;
 
 		case TURN_L:
-			//yaw_delta += disp_rotation;
 			HM_Trans_now = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., 0., disp_rotation)
 				* HM_Trans_now;
 			break;
@@ -446,41 +406,15 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 		case ENTER:
 			*cloud_show_static += *cloud_moving;
 			HM_free = Eigen::Matrix4d::Identity();
-			HM_free_2 = Eigen::Matrix4d::Identity();
-			for (int i = 0; i < index_PC_now; i++) HM_free_2 = HM_free_2 * HM_displacement_vec[i];
-			HM_free = HM_free_2 * HM_displacement_vec[index_PC_now];
-			//-----------------------------------------------------------------
-			//for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
-			//if (index_PC_now == 0)
-			//{
-			//	HM_displacement_vec[index_PC_now] = calcHomogeneousMatrixFromVector6d(
-			//		x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta) * HM_free;
-			//}
-			//else
-			//{
-			//	HM_displacement_vec[index_PC_now] = HM_displacement_vec[index_PC_now - 1].inverse()
-			//		* calcHomogeneousMatrixFromVector6d(
-			//			x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta) * HM_free;
-			//}
-			//-----------------------------------------------------------------
-			//HM_displacement_vec[index_PC_now] = calcHomogeneousMatrixFromVector6d(
-			//	x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta)
-			//	* HM_displacement_vec[index_PC_now];
-			//-----------------------------------------------------------------
-			//HM_displacement_vec[index_PC_now] = HM_free_2.inverse()
-			//	* calcHomogeneousMatrixFromVector6d(
-			//		x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta)
-			//	* HM_free;
-			//x_delta = y_delta = z_delta = roll_delta = pitch_delta = yaw_delta = 0.;
-			//-----------------------------------------------------------------
-			HM_displacement_vec[index_PC_now] = HM_free_2.inverse() * HM_Trans_now;
+			for (int i = 0; i < index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
+			HM_displacement_vec[index_PC_now] = HM_free.inverse() * HM_Trans_now;
 			index_PC_now++;
+			if (index_PC_now == HM_displacement_vec.size()) b_break = true;
 			b_makeNewPC = true;
 			cout << "ENTER pressed" << endl;
 			break;
 
 		case SUBTRACT:
-			//x_delta = y_delta = z_delta = roll_delta = pitch_delta = yaw_delta = 0.;
 			HM_free = Eigen::Matrix4d::Identity();
 			for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
 			HM_Trans_now = HM_free;
@@ -495,12 +429,6 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 		if (!(key_ == NONE || key_ == ENTER)) {
 			cloud_moving->clear();
 			Trans_ = Eigen::Affine3f::Identity();
-			HM_free = Eigen::Matrix4d::Identity();
-			//for (int i = 0; i <= index_PC_now; i++) HM_free = HM_displacement_vec[i] * HM_free;
-			for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
-			//Trans_ = calcAffine3fFromHomogeneousMatrix(
-			//	calcHomogeneousMatrixFromVector6d(
-			//		x_delta, y_delta, z_delta, roll_delta, pitch_delta, yaw_delta) * HM_free);
 			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_Trans_now);
 			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
 		}
@@ -509,48 +437,36 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 		*cloud_show += *cloud_moving;
 
 		if (cloud_show->size() != 0) {
-			//cout << "show!" << endl;
 			ShowPcdFile(cloud_show);
 		}
+
+		if (b_break) break;
 	}
 
-	////output txt
-	//if (!b_escaped)
-	//{
-	//	vector<vector<double>> trajectory_vec_vec;
-	//	HM_free = Eigen::Matrix4d::Identity();
-	//	for (int i = 0; i < HM_displacement_vec.size(); i++)
-	//	{
-	//		HM_free = HM_displacement_vec[i] * HM_free;
-	//		Eigen::Vector6d State_;
-	//		State_ = calcVector6dFromHomogeneousMatrix(HM_free);
-	//		vector<double> trajectory_vec;
-	//		trajectory_vec.push_back(i);
-	//		trajectory_vec.push_back(State_[0]);
-	//		trajectory_vec.push_back(State_[1]);
-	//		trajectory_vec.push_back(State_[2]);
-	//		trajectory_vec.push_back(State_[3]);
-	//		trajectory_vec.push_back(State_[4]);
-	//		trajectory_vec.push_back(State_[5]);
-	//		trajectory_vec_vec.push_back(trajectory_vec);
-
-	//	}
-	//	//for (int i = 0; i < state_vec.size(); i++)
-	//	//{
-	//	//	vector<double> trajectory_vec;
-	//	//	trajectory_vec.push_back(i);
-	//	//	trajectory_vec.push_back(state_vec[i].x_);
-	//	//	trajectory_vec.push_back(state_vec[i].y_);
-	//	//	trajectory_vec.push_back(state_vec[i].z_);
-	//	//	trajectory_vec.push_back(state_vec[i].roll_);
-	//	//	trajectory_vec.push_back(state_vec[i].pitch_);
-	//	//	trajectory_vec.push_back(state_vec[i].yaw_);
-	//	//	trajectory_vec_vec.push_back(trajectory_vec);
-	//	//}
-	//	time_.getCSVFromVecVec(trajectory_vec_vec, filename_txt);
-	//	cout << "file has saved!" << endl;
-	//}
-	//else cout << "file has not saved!" << endl;
+	//output txt
+	if (!b_escaped)
+	{
+		vector<vector<double>> trajectory_vec_vec;
+		HM_free = Eigen::Matrix4d::Identity();
+		for (int i = 0; i < HM_displacement_vec.size(); i++)
+		{
+			HM_free = HM_free * HM_displacement_vec[i];
+			Eigen::Vector6d State_;
+			State_ = calcVector6dFromHomogeneousMatrix(HM_free);
+			vector<double> trajectory_vec;
+			trajectory_vec.push_back(i);
+			trajectory_vec.push_back(State_[0]);
+			trajectory_vec.push_back(State_[1]);
+			trajectory_vec.push_back(State_[2]);
+			trajectory_vec.push_back(State_[3]);
+			trajectory_vec.push_back(State_[4]);
+			trajectory_vec.push_back(State_[5]);
+			trajectory_vec_vec.push_back(trajectory_vec);
+		}
+		time_.getCSVFromVecVec(trajectory_vec_vec, filename_txt);
+		cout << "file has saved!" << endl;
+	}
+	else cout << "file has not saved!" << endl;
 }
 
 
