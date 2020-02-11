@@ -94,14 +94,15 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	case EN_sequentshow:
 		//sequent show
 		initVisualizer();
-		ShowOnlySequent("\../savedfolder/naraha summer/sequent");
-		//ShowOnlySequent("\../savedfolder/20200119/PointCloud/");
+		ShowOnlySequent("../savedfolder/naraha summer/sequent");
+		//ShowOnlySequent("../savedfolder/20200119/PointCloud/");
 
 		break;
 
 	case EN_handregistration:
 		initVisualizer();
-		HandRegistration("\../savedfolder/naraha summer/sequent");
+		//HandRegistration("../savedfolder/naraha summer/sequent");
+		HandRegistration("../savedfolder/naraha summer/sequent");
 		break;
 	}
 
@@ -365,7 +366,7 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 			b_first = false;
 		}
 
-		if(key_ != NONE) cout << "key_ = " << key_ << endl;
+		//if(key_ != NONE) cout << "key_ = " << key_ << endl;
 
 		//determine transformation by key
 		switch (key_) {
