@@ -303,24 +303,26 @@ void CVelodyneInterface::HandRegistration(string foldername_) {
 			for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
 			HM_Trans_now = HM_free;
 			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
-			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
 
 			//ground
 			bool b_RemoveGround;
 			b_RemoveGround = true;
-			if(b_RemoveGround)
+			if (b_RemoveGround)
 			{
 				double th_height;
 				th_height = -0.1;
 				cloud_temp->clear();
-				pcl::copyPointCloud(*cloud_moving, *cloud_temp);
-				cloud_moving->clear();
+				pcl::copyPointCloud(*cloud_moving_before, *cloud_temp);
+				cloud_moving_before->clear();
 				for (size_t i = 0; i < cloud_temp->size(); i++)
 				{
 					if (th_height > cloud_temp->points[i].z) continue;
-					cloud_moving->push_back(cloud_temp->points[i]);
+					cloud_moving_before->push_back(cloud_temp->points[i]);
 				}
 			}
+
+			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
+
 			b_makeNewPC = false;
 		}
 
