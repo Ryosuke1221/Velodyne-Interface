@@ -53,6 +53,17 @@ public:
 				vector<T> one_observation_vec;
 				vector<int> find_vec = time_.find_all(str_, ",");
 				one_observation_vec.push_back(stod(str_.substr(0, find_vec[0])));
+				//one_observation_vec.push_back((T)(stod(str_.substr(0, find_vec[0]))));
+				//one_observation_vec.push_back(static_cast<T>(stod(str_.substr(0, find_vec[0]))));
+
+				//if (typeid(T) == typeid(int))
+				//	one_observation_vec.push_back(stoi(str_.substr(0, find_vec[0])));
+				//else if (typeid(T) == typeid(float))
+				//	one_observation_vec.push_back(stof(str_.substr(0, find_vec[0])));
+				//else if (typeid(T) == typeid(double))
+				//	one_observation_vec.push_back(stod(str_.substr(0, find_vec[0])));
+				//else if (typeid(T) == typeid(string))
+				//	one_observation_vec.push_back(str_.substr(0, find_vec[0]));
 				int s_pos = 0;
 				while (s_pos < find_vec.size() - 1)
 				{
@@ -63,6 +74,8 @@ public:
 						value_ = stof(str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1)));
 					else if (typeid(T) == typeid(double))
 						value_ = stod(str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1)));
+					//else if (typeid(T) == typeid(string))
+					//	value_ = str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1));
 					one_observation_vec.push_back(value_);
 					s_pos++;
 				}

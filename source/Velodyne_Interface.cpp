@@ -15,8 +15,8 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		EN_capture,
 		EN_capture2D,
 		EN_sequentshow,
-		EN_handregistration
-
+		EN_handregistration,
+		EN_FreeSpace
 	};
 
 	cout << "please input process number" << endl;
@@ -29,6 +29,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	cout << EN_capture2D << ": capture and show in 2D" << endl;
 	cout << EN_sequentshow << ": sequent show" << endl;
 	cout << EN_handregistration << ": hand registration" << endl;
+	cout << EN_FreeSpace << ":free space" << endl;
 
 	cin >> WhichProcess;
 	switch (WhichProcess) {
@@ -104,6 +105,12 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		//HandRegistration("../savedfolder/naraha summer/sequent");
 		HandRegistration("../savedfolder/naraha summer/sequent");
 		break;
+
+	case EN_FreeSpace:
+		initVisualizer();
+		FreeSpace();
+		break;
+
 	}
 
 	getchar();
@@ -190,7 +197,31 @@ Eigen::Affine3f CVelodyneInterface::calcAffine3fFromHomogeneousMatrix(Eigen::Mat
 	return Trans_Affine;
 }
 
-void CVelodyneInterface::HandRegistration(string foldername_) {
+void CVelodyneInterface::FreeSpace()
+{
+	cout << "test" << endl;
+
+	CTimeString time_;
+
+	vector<string> filenames;
+	string file_dir = "../savedfolder/temp";
+	time_.getFileNames_extension(file_dir,filenames,".csv");
+
+	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
+	//string filename_PC;
+	//pcl::io::loadPCDFile(filename_PC, *cloud_);
+
+	for (int i = 0; i < filenames.size(); i++)
+	{
+		vector<vector<string>> csv_vec_vec;
+		csv_vec_vec = time_.getVecVecFromCSV<string>(filenames[i]);
+		cout << "i:" << i << endl;
+	}
+}
+
+
+void CVelodyneInterface::HandRegistration(string foldername_) 
+{
 
 	cout << "HandRegistration started!" << endl;
 	Sleep(1 * 1000);

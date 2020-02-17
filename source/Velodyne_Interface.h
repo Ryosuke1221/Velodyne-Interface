@@ -209,5 +209,6 @@ public:
 
 	Eigen::Affine3f calcAffine3fFromHomogeneousMatrix(Eigen::Matrix4d input_Mat);
 
+	void FreeSpace();
 
 };
