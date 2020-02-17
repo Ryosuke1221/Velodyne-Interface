@@ -207,15 +207,35 @@ void CVelodyneInterface::FreeSpace()
 	string file_dir = "../savedfolder/temp";
 	time_.getFileNames_extension(file_dir,filenames,".csv");
 
-	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-	//string filename_PC;
-	//pcl::io::loadPCDFile(filename_PC, *cloud_);
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>());
 
+	//PointClouds
 	for (int i = 0; i < filenames.size(); i++)
 	{
-		vector<vector<string>> csv_vec_vec;
-		csv_vec_vec = time_.getVecVecFromCSV<string>(filenames[i]);
+		vector<vector<double>> csv_vec_vec;
+		csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i]);
 		cout << "i:" << i << endl;
+
+		//PointCloud
+		cloud_->clear();
+		for (int j = 0; j < csv_vec_vec.size(); j++)
+		{
+			if (j == 0) continue;
+			pcl::PointXYZI point_;
+			point_.x = csv_vec_vec[j][0];
+			point_.y = csv_vec_vec[j][1];
+			point_.z = csv_vec_vec[j][2];
+			point_.intensity = csv_vec_vec[j][6];
+			cloud_->push_back(point_);
+		}
+
+		string filename_;
+		filename_ = to_string(i);
+		if (filename_.size() < 3) filename_ = "0" + filename_;
+		if (filename_.size() < 3) filename_ = "0" + filename_;
+		filename_ += ".pcd";
+
+		pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/"+ filename_, *cloud_);
 	}
 }
 

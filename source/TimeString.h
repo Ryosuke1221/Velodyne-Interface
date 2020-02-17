@@ -52,34 +52,48 @@ public:
 			while (getline(ifs_, str_)) {		//readed to string from file
 				vector<T> one_observation_vec;
 				vector<int> find_vec = time_.find_all(str_, ",");
-				one_observation_vec.push_back(stod(str_.substr(0, find_vec[0])));
-				//one_observation_vec.push_back((T)(stod(str_.substr(0, find_vec[0]))));
-				//one_observation_vec.push_back(static_cast<T>(stod(str_.substr(0, find_vec[0]))));
+				string s_value;
 
-				//if (typeid(T) == typeid(int))
-				//	one_observation_vec.push_back(stoi(str_.substr(0, find_vec[0])));
-				//else if (typeid(T) == typeid(float))
-				//	one_observation_vec.push_back(stof(str_.substr(0, find_vec[0])));
-				//else if (typeid(T) == typeid(double))
-				//	one_observation_vec.push_back(stod(str_.substr(0, find_vec[0])));
+				s_value = str_.substr(0, find_vec[0]);
+
+				////https://qiita.com/edo1z/items/da66e28e206d2b01157e
+				////http://program.station.ez-net.jp/special/handbook/cpp/string/all_of.asp
+				//if (!std::all_of(s_value.cbegin(), s_value.cend(), isdigit)) continue;
+				//if (!std::any_of(s_value.cbegin(), s_value.cend(), isdigit)) continue;
+
+				if (typeid(T) == typeid(int))
+					one_observation_vec.push_back(stoi(s_value));
+				else if (typeid(T) == typeid(float))
+					one_observation_vec.push_back(stof(s_value));
+				else if (typeid(T) == typeid(double))
+					one_observation_vec.push_back(stod(s_value));
 				//else if (typeid(T) == typeid(string))
-				//	one_observation_vec.push_back(str_.substr(0, find_vec[0]));
+				//	one_observation_vec.push_back(s_value);
+
 				int s_pos = 0;
 				while (s_pos < find_vec.size() - 1)
 				{
-					T value_;
+					s_value = str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1));
 					if (typeid(T) == typeid(int))
-						value_ = stoi(str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1)));
+						one_observation_vec.push_back(stoi(s_value));
 					else if (typeid(T) == typeid(float))
-						value_ = stof(str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1)));
+						one_observation_vec.push_back(stof(s_value));
 					else if (typeid(T) == typeid(double))
-						value_ = stod(str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1)));
+						one_observation_vec.push_back(stod(s_value));
 					//else if (typeid(T) == typeid(string))
-					//	value_ = str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1));
-					one_observation_vec.push_back(value_);
+					//	one_observation_vec.push_back(s_value);
 					s_pos++;
 				}
-				one_observation_vec.push_back(stod(str_.substr(find_vec[s_pos] + 1, str_.size() - (find_vec[s_pos] + 1))));
+				s_value = str_.substr(find_vec[s_pos] + 1, str_.size() - (find_vec[s_pos] + 1));
+				if (typeid(T) == typeid(int))
+					one_observation_vec.push_back(stoi(s_value));
+				else if (typeid(T) == typeid(float))
+					one_observation_vec.push_back(stof(s_value));
+				else if (typeid(T) == typeid(double))
+					one_observation_vec.push_back(stod(s_value));
+				//else if (typeid(T) == typeid(string))
+				//	one_observation_vec.push_back(s_value);
+
 				all_observation_vec_vec.push_back(one_observation_vec);
 			}
 			ifs_.close();
