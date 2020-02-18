@@ -120,6 +120,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 			GetPcdFromCSV("../savedfolder/temp");
 			break;
 		}
+
 	}
 	
 	cout << "process finished (press:ESC)" << endl;
