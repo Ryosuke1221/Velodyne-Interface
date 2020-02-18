@@ -5,6 +5,8 @@
 #include<sstream>
 #include<vector>
 #include<typeinfo>
+#include<algorithm>
+#include<fstream>
 
 using namespace std;
 
@@ -55,11 +57,7 @@ public:
 				string s_value;
 
 				s_value = str_.substr(0, find_vec[0]);
-
-				////https://qiita.com/edo1z/items/da66e28e206d2b01157e
-				////http://program.station.ez-net.jp/special/handbook/cpp/string/all_of.asp
-				//if (!std::all_of(s_value.cbegin(), s_value.cend(), isdigit)) continue;
-				//if (!std::any_of(s_value.cbegin(), s_value.cend(), isdigit)) continue;
+				if (!time_.getIsStringValueOrNot(s_value)) continue;
 
 				if (typeid(T) == typeid(int))
 					one_observation_vec.push_back(stoi(s_value));
@@ -71,9 +69,16 @@ public:
 				//	one_observation_vec.push_back(s_value);
 
 				int s_pos = 0;
+				bool b_break = false;
 				while (s_pos < find_vec.size() - 1)
 				{
 					s_value = str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1));
+					if (!time_.getIsStringValueOrNot(s_value))
+					{
+						b_break = true;
+						break;
+					}
+
 					if (typeid(T) == typeid(int))
 						one_observation_vec.push_back(stoi(s_value));
 					else if (typeid(T) == typeid(float))
@@ -84,7 +89,11 @@ public:
 					//	one_observation_vec.push_back(s_value);
 					s_pos++;
 				}
+				if (b_break) continue;
+
 				s_value = str_.substr(find_vec[s_pos] + 1, str_.size() - (find_vec[s_pos] + 1));
+				if (!time_.getIsStringValueOrNot(s_value)) continue;
+
 				if (typeid(T) == typeid(int))
 					one_observation_vec.push_back(stoi(s_value));
 				else if (typeid(T) == typeid(float))
@@ -121,5 +130,7 @@ public:
 
 	bool getFileNames(std::string folderPath, std::vector<std::string> &file_names);
 	bool getFileNames_extension(std::string folderPath, std::vector<std::string> &file_names,string s_extension);
+
+	bool getIsStringValueOrNot(string s_string);
 
 };

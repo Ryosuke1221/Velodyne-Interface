@@ -6,8 +6,8 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	string filename1, filename2;
 
 	enum OPTION {
-
-		EN_escape = 1,
+		EN_escape = 0,
+		EN_FreeSpace,
 		EN_ReadAndShowOne,
 		EN_show2PointClouds,
 		EN_ToggleWrite,
@@ -16,11 +16,12 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		EN_capture2D,
 		EN_sequentshow,
 		EN_handregistration,
-		EN_FreeSpace
+		EN_GetPcdFromCSV,
 	};
 
 	cout << "please input process number" << endl;
 	cout << EN_escape << ": escape" << endl;
+	cout << EN_FreeSpace << ": free space" << endl;
 	cout << EN_ReadAndShowOne << ": ReadAndShowOne" << endl;
 	cout << EN_show2PointClouds << ": show 2 PointClouds" << endl;
 	cout << EN_ToggleWrite << ": ToggleWrite" << endl;
@@ -29,12 +30,17 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	cout << EN_capture2D << ": capture and show in 2D" << endl;
 	cout << EN_sequentshow << ": sequent show" << endl;
 	cout << EN_handregistration << ": hand registration" << endl;
-	cout << EN_FreeSpace << ":free space" << endl;
+	cout << EN_GetPcdFromCSV << ": get .pcd from .csv" << endl;
 
 	cin >> WhichProcess;
 	switch (WhichProcess) {
 	case EN_escape:
 		//escape
+		break;
+
+	case EN_FreeSpace:
+		initVisualizer();
+		FreeSpace();
 		break;
 
 	case EN_ReadAndShowOne:
@@ -95,9 +101,9 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	case EN_sequentshow:
 		//sequent show
 		initVisualizer();
-		ShowOnlySequent("../savedfolder/naraha summer/sequent");
+		//ShowOnlySequent("../savedfolder/naraha summer/sequent");
 		//ShowOnlySequent("../savedfolder/20200119/PointCloud/");
-
+		ShowOnlySequent("../savedfolder/temp");
 		break;
 
 	case EN_handregistration:
@@ -106,9 +112,8 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		HandRegistration("../savedfolder/naraha summer/sequent");
 		break;
 
-	case EN_FreeSpace:
-		initVisualizer();
-		FreeSpace();
+	case EN_GetPcdFromCSV:
+		GetPcdFromCSV("../savedfolder/temp");
 		break;
 
 	}
@@ -199,22 +204,26 @@ Eigen::Affine3f CVelodyneInterface::calcAffine3fFromHomogeneousMatrix(Eigen::Mat
 
 void CVelodyneInterface::FreeSpace()
 {
-	cout << "test" << endl;
+
+}
+
+void CVelodyneInterface::GetPcdFromCSV(string file_dir)
+{
+	//file_dir = "../savedfolder/temp1";		//debug
 
 	CTimeString time_;
-
-	vector<string> filenames;
-	string file_dir = "../savedfolder/temp";
-	time_.getFileNames_extension(file_dir,filenames,".csv");
-
 	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>());
+
+	//get filenames
+	vector<string> filenames;
+	time_.getFileNames_extension(file_dir, filenames, ".csv");
 
 	//PointClouds
 	for (int i = 0; i < filenames.size(); i++)
 	{
 		vector<vector<double>> csv_vec_vec;
 		csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i]);
-		cout << "i:" << i << endl;
+		cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
 
 		//PointCloud
 		cloud_->clear();
@@ -233,11 +242,13 @@ void CVelodyneInterface::FreeSpace()
 		filename_ = to_string(i);
 		if (filename_.size() < 3) filename_ = "0" + filename_;
 		if (filename_.size() < 3) filename_ = "0" + filename_;
-		filename_ += ".pcd";
+		filename_ += "_frame0.pcd";
 
-		pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/"+ filename_, *cloud_);
+		pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/" + filename_, *cloud_);
 	}
+
 }
+
 
 
 void CVelodyneInterface::HandRegistration(string foldername_) 
@@ -521,7 +532,7 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 
 void CVelodyneInterface::ShowOnlySequent(string foldername_)
 {
-	foldername_ = "\../savedfolder/20200119/PointCloud";
+	//foldername_ = "../savedfolder/20200119/PointCloud";
 	//foldername_ = "\../savedfolder/naraha summer/sequent";
 	CTimeString time_;
 	vector<string> filenames_;

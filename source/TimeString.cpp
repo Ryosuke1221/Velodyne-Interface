@@ -215,7 +215,8 @@ std::vector<int> CTimeString::find_all(const std::string str, const std::string 
 }
 
 bool CTimeString::getFileNames(std::string folderPath, std::vector<std::string> &file_names)
-{
+{	
+
 	//https://qiita.com/tes2840/items/8d295b1caaf10eaf33ad
 	//#include <windows.h>
 	//#include <vector>
@@ -227,9 +228,30 @@ bool CTimeString::getFileNames(std::string folderPath, std::vector<std::string> 
 
 	hFind = FindFirstFile(search_name.c_str(), &win32fd);
 
-	if (hFind == INVALID_HANDLE_VALUE) {
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		cout << "directory not found" << endl;
+
+		vector<int> find_vec = find_all(folderPath, "/");
+		for (int i = 0; i < find_vec.size(); i++)
+		{
+			cout << "not found:" << folderPath << endl;
+
+			string folderPath_each = folderPath.substr(0, find_vec[find_vec.size() - 1 - i]);
+			std::string search_name_each = folderPath_each + "\\*";
+			HANDLE hFind_each;
+			WIN32_FIND_DATA win32fd_each;
+			hFind_each = FindFirstFile(search_name_each.c_str(), &win32fd);
+			if (hFind_each == INVALID_HANDLE_VALUE)
+				cout << "not found:" << folderPath_each << endl;
+			else
+			{
+				cout << "    found:" << folderPath_each << endl;
+				break;
+			}
+		}
 		throw std::runtime_error("file not found");
-		return false;
+		return false;		
 	}
 
 	do
@@ -237,10 +259,8 @@ bool CTimeString::getFileNames(std::string folderPath, std::vector<std::string> 
 		if (win32fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			cout << win32fd.cFileName << "(directory)" << endl;
 		}
-		else {
-			file_names.push_back(win32fd.cFileName);
-			//cout << file_names.back() << endl;
-		}
+		else file_names.push_back(win32fd.cFileName);
+
 	} while (FindNextFile(hFind, &win32fd));
 
 	FindClose(hFind);
@@ -264,3 +284,26 @@ bool CTimeString::getFileNames_extension(std::string folderPath, std::vector<std
 }
 
 
+bool CTimeString::getIsStringValueOrNot(string s_string)
+{
+	////http://program.station.ez-net.jp/special/handbook/cpp/string/all_of.asp
+	if (std::all_of(s_string.cbegin(), s_string.cend(), isdigit)) return true;
+
+	{
+		vector<int> find_vec_1 = find_all(s_string, "-");
+		if (find_vec_1.size() == 1)
+			if (find_vec_1[0] == 0)	s_string = s_string.substr(1, s_string.size() - 1);
+	}
+
+	vector<int> find_vec = find_all(s_string, ".");
+
+	if (find_vec.size() != 1) return false;
+
+	string s_former = s_string.substr(0, find_vec[0] - 0);
+	string s_later = s_string.substr(find_vec[0]+1, s_string.size() - (find_vec[0] + 1));
+
+	if (!std::all_of(s_former.cbegin(), s_former.cend(), isdigit)) return false;
+	if (!std::all_of(s_later.cbegin(), s_later.cend(), isdigit)) return false;
+
+	return true;
+}
