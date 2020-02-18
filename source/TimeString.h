@@ -39,7 +39,7 @@ public:
 	std::vector<int> find_all(const std::string str, const std::string subStr);
 
 	template<typename T>
-	vector<vector<T>> getVecVecFromCSV(string filename_) {
+	vector<vector<T>> getVecVecFromCSV(string filename_, string key_token = ",") {
 		//double,float, int
 		//https://qiita.com/hal1437/items/b6deb22a88c76eeaf90c
 		//https://docs.oracle.com/cd/E19957-01/805-7887/6j7dsdhfl/index.html
@@ -53,7 +53,7 @@ public:
 		else {
 			while (getline(ifs_, str_)) {		//readed to string from file
 				vector<T> one_observation_vec;
-				vector<int> find_vec = time_.find_all(str_, ",");
+				vector<int> find_vec = time_.find_all(str_, key_token);
 				string s_value;
 
 				s_value = str_.substr(0, find_vec[0]);

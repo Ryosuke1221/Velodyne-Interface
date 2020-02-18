@@ -4,6 +4,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 {
 	int WhichProcess = 0;
 	string filename1, filename2;
+	bool b_finish = false;
 
 	enum OPTION {
 		EN_escape = 0,
@@ -19,106 +20,116 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		EN_GetPcdFromCSV,
 	};
 
-	cout << "please input process number" << endl;
-	cout << EN_escape << ": escape" << endl;
-	cout << EN_FreeSpace << ": free space" << endl;
-	cout << EN_ReadAndShowOne << ": ReadAndShowOne" << endl;
-	cout << EN_show2PointClouds << ": show 2 PointClouds" << endl;
-	cout << EN_ToggleWrite << ": ToggleWrite" << endl;
-	cout << EN_TimerWrite << ": TimerWrite" << endl;
-	cout << EN_capture << ": capture and show" << endl;
-	cout << EN_capture2D << ": capture and show in 2D" << endl;
-	cout << EN_sequentshow << ": sequent show" << endl;
-	cout << EN_handregistration << ": hand registration" << endl;
-	cout << EN_GetPcdFromCSV << ": get .pcd from .csv" << endl;
+	while (!b_finish)
+	{
+		cout << "please input process number" << endl;
+		cout << EN_escape << ": escape" << endl;
+		cout << EN_FreeSpace << ": free space" << endl;
+		cout << EN_ReadAndShowOne << ": ReadAndShowOne" << endl;
+		cout << EN_show2PointClouds << ": show 2 PointClouds" << endl;
+		cout << EN_ToggleWrite << ": ToggleWrite" << endl;
+		cout << EN_TimerWrite << ": TimerWrite" << endl;
+		cout << EN_capture << ": capture and show" << endl;
+		cout << EN_capture2D << ": capture and show in 2D" << endl;
+		cout << EN_sequentshow << ": sequent show" << endl;
+		cout << EN_handregistration << ": hand registration" << endl;
+		cout << EN_GetPcdFromCSV << ": get .pcd from .csv" << endl;
 
-	cin >> WhichProcess;
-	switch (WhichProcess) {
-	case EN_escape:
-		//escape
-		break;
+		cin >> WhichProcess;
+		switch (WhichProcess) {
+		case EN_escape:
+			//escape
+			b_finish = true;
+			break;
 
-	case EN_FreeSpace:
-		initVisualizer();
-		FreeSpace();
-		break;
+		case EN_FreeSpace:
+			initVisualizer();
+			FreeSpace();
+			break;
 
-	case EN_ReadAndShowOne:
-		//ReadAndShowOne
-		initVisualizer();
-		//velodyne.ReadAndShowOne("\../savedfolder/20181017_0242_45_080.pcd");
-		//velodyne.ReadAndShowOne("\../savedfolder/20181017_0243_07_597.pcd");
-		//ReadAndShowOne("\../savedfolder/20190829_1434_16_859.pcd");			//for making it be plate
-		ReadAndShowOne("\../savedfolder/20200119_1101_51_127.pcd");			//for making it be plate
+		case EN_ReadAndShowOne:
+			//ReadAndShowOne
+			initVisualizer();
+			//velodyne.ReadAndShowOne("\../savedfolder/20181017_0242_45_080.pcd");
+			//velodyne.ReadAndShowOne("\../savedfolder/20181017_0243_07_597.pcd");
+			//ReadAndShowOne("\../savedfolder/20190829_1434_16_859.pcd");			//for making it be plate
+			ReadAndShowOne("\../savedfolder/20200119_1101_51_127.pcd");			//for making it be plate
 
-																							//20181017_0242_56_345
-																							//20181017_0243_07_597
-																							//連続で読み込む場合は，ファイルを最初にまとめて読み込むべし．読み込む用の関数が要る．
-																							//ウィンドウを閉じる処理を入れるべき．
-		break;
+																								//20181017_0242_56_345
+																								//20181017_0243_07_597
+																								//連続で読み込む場合は，ファイルを最初にまとめて読み込むべし．読み込む用の関数が要る．
+																								//ウィンドウを閉じる処理を入れるべき．
+			break;
 
-	case EN_show2PointClouds:
-		//show 2 PointClouds
-		//string filename1;
-		filename1 = "\../savedfolder/20181017_0242_45_080.pcd";
-		//string filename2;
-		filename2 = "\../savedfolder/20181017_0243_07_597.pcd";
-		ReadAndShow2Clouds(filename1, filename2);
-		break;
+		case EN_show2PointClouds:
+			//show 2 PointClouds
+			//string filename1;
+			filename1 = "\../savedfolder/20181017_0242_45_080.pcd";
+			//string filename2;
+			filename2 = "\../savedfolder/20181017_0243_07_597.pcd";
+			ReadAndShow2Clouds(filename1, filename2);
+			break;
 
 
-	case EN_ToggleWrite:
-		//ToggleWrite
-		initVisualizer();
-		connect(ipaddress, port);
-		ToggleWrite();
-		disconnect();
-		break;
+		case EN_ToggleWrite:
+			//ToggleWrite
+			initVisualizer();
+			connect(ipaddress, port);
+			ToggleWrite();
+			disconnect();
+			break;
 
-	case EN_TimerWrite:
-		//TimerWrite
-		connect(ipaddress, port);
-		TimerWrite();
-		disconnect();
-		break;
+		case EN_TimerWrite:
+			//TimerWrite
+			connect(ipaddress, port);
+			TimerWrite();
+			disconnect();
+			break;
 
-	case EN_capture:
-		//capture and show
-		initVisualizer();
-		connect(ipaddress, port);
-		show();
-		disconnect();
-		break;
+		case EN_capture:
+			//capture and show
+			initVisualizer();
+			connect(ipaddress, port);
+			show();
+			disconnect();
+			break;
 
-	case EN_capture2D:
-		//capture and show in 2D
-		initVisualizer();
-		connect(ipaddress, port);
-		show_2D();
-		disconnect();
-		break;
+		case EN_capture2D:
+			//capture and show in 2D
+			initVisualizer();
+			connect(ipaddress, port);
+			show_2D();
+			disconnect();
+			break;
 
-	case EN_sequentshow:
-		//sequent show
-		initVisualizer();
-		//ShowOnlySequent("../savedfolder/naraha summer/sequent");
-		//ShowOnlySequent("../savedfolder/20200119/PointCloud/");
-		ShowOnlySequent("../savedfolder/temp");
-		break;
+		case EN_sequentshow:
+			//sequent show
+			initVisualizer();
+			//ShowOnlySequent("../savedfolder/naraha summer/sequent");
+			//ShowOnlySequent("../savedfolder/20200119/PointCloud/");
+			ShowOnlySequent("../savedfolder/temp");
+			break;
 
-	case EN_handregistration:
-		initVisualizer();
-		//HandRegistration("../savedfolder/naraha summer/sequent");
-		HandRegistration("../savedfolder/naraha summer/sequent");
-		break;
+		case EN_handregistration:
+			initVisualizer();
+			//HandRegistration("../savedfolder/naraha summer/sequent");
+			HandRegistration("../savedfolder/naraha summer/sequent");
+			break;
 
-	case EN_GetPcdFromCSV:
-		GetPcdFromCSV("../savedfolder/temp");
-		break;
+		case EN_GetPcdFromCSV:
+			GetPcdFromCSV("../savedfolder/temp");
+			break;
+
+		}
 
 	}
-
-	getchar();
+	
+	cout << "process finished (press:ESC)" << endl;
+	GetAsyncKeyState(VK_ESCAPE);
+	while (1)
+	{
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
+	}
 
 }
 
@@ -209,44 +220,49 @@ void CVelodyneInterface::FreeSpace()
 
 void CVelodyneInterface::GetPcdFromCSV(string file_dir)
 {
-	//file_dir = "../savedfolder/temp1";		//debug
-
 	CTimeString time_;
 	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>());
 
-	//get filenames
-	vector<string> filenames;
-	time_.getFileNames_extension(file_dir, filenames, ".csv");
-
-	//PointClouds
-	for (int i = 0; i < filenames.size(); i++)
 	{
-		vector<vector<double>> csv_vec_vec;
-		csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i]);
-		cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
+		//file_dir = "../savedfolder/temp1";		//debug
 
-		//PointCloud
-		cloud_->clear();
-		for (int j = 0; j < csv_vec_vec.size(); j++)
+		//get filenames
+		vector<string> filenames;
+		//time_.getFileNames_extension(file_dir, filenames, ".csv");
+		time_.getFileNames_extension(file_dir, filenames, "velo.csv");
+		//time_.getFileNames_extension(file_dir, filenames, "nir.csv");
+
+		//PointClouds
+		for (int i = 0; i < filenames.size(); i++)
 		{
-			if (j == 0) continue;
-			pcl::PointXYZI point_;
-			point_.x = csv_vec_vec[j][0];
-			point_.y = csv_vec_vec[j][1];
-			point_.z = csv_vec_vec[j][2];
-			point_.intensity = csv_vec_vec[j][6];
-			cloud_->push_back(point_);
+			vector<vector<double>> csv_vec_vec;
+			csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i]," ");
+			cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
+
+			//PointCloud
+			cloud_->clear();
+			for (int j = 0; j < csv_vec_vec.size(); j++)
+			{
+				if (j == 0) continue;
+				pcl::PointXYZI point_;
+				point_.x = csv_vec_vec[j][0];
+				point_.y = csv_vec_vec[j][1];
+				point_.z = csv_vec_vec[j][2];
+				point_.intensity = csv_vec_vec[j][6];
+				cloud_->push_back(point_);
+			}
+
+			string filename_;
+			//filename_ = to_string(i);
+			//if (filename_.size() < 3) filename_ = "0" + filename_;
+			//if (filename_.size() < 3) filename_ = "0" + filename_;
+			//filename_ += "_frame0.pcd";
+			filename_ = filenames[i].substr(0, filenames[i].size() - 4) + ".pcd";
+
+			pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/" + filename_, *cloud_);
 		}
 
-		string filename_;
-		filename_ = to_string(i);
-		if (filename_.size() < 3) filename_ = "0" + filename_;
-		if (filename_.size() < 3) filename_ = "0" + filename_;
-		filename_ += "_frame0.pcd";
-
-		pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/" + filename_, *cloud_);
 	}
-
 }
 
 
@@ -574,6 +590,9 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 	}
 
 	cout << "finished" << endl;
+
+	m_viewer->close();
+
 }
 
 
