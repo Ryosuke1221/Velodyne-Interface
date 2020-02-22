@@ -225,21 +225,21 @@ void CVelodyneInterface::GetPcdFromCSV(string file_dir)
 
 	//get filenames
 	vector<string> filenames;
-	//time_.getFileNames_extension(file_dir, filenames, ").csv"); i_select = 0;
+	time_.getFileNames_extension(file_dir, filenames, ").csv"); i_select = 0;
 	//time_.getFileNames_extension(file_dir, filenames, "velo.csv"); i_select = 1;
-	time_.getFileNames_extension(file_dir, filenames, "nir.csv"); i_select = 2;
+	//time_.getFileNames_extension(file_dir, filenames, "nir.csv"); i_select = 2;
 
 	//PointClouds XYZI
 	if (i_select == 0 || i_select == 1)
 	{
 		for (int i = 0; i < filenames.size(); i++)
 		{
+			cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
 			vector<vector<double>> csv_vec_vec;
 			if (i_select == 0)
 				csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i]);
 			else if (i_select == 1)
 				csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i], " ");
-			cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
 			//PointCloud
 			cloud_->clear();
 			for (int j = 0; j < csv_vec_vec.size(); j++)
@@ -260,11 +260,15 @@ void CVelodyneInterface::GetPcdFromCSV(string file_dir)
 	//PointClouds XYZnir
 	else if (i_select == 2)
 	{
+		float max_, min_;
+		min_ = 255.;
+		max_ = 0.;
+
 		for (int i = 0; i < filenames.size(); i++)
 		{
+			cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
 			vector<vector<double>> csv_vec_vec;
 			csv_vec_vec = time_.getVecVecFromCSV<double>(file_dir + "/" + filenames[i], " ");
-			cout << "i:" << i << " calc " << file_dir + "/" + filenames[i] << "..." << endl;
 			//PointCloud
 			cloud_->clear();
 			for (int j = 0; j < csv_vec_vec.size(); j++)
@@ -273,14 +277,20 @@ void CVelodyneInterface::GetPcdFromCSV(string file_dir)
 				point_.x = csv_vec_vec[j][0];
 				point_.y = csv_vec_vec[j][1];
 				point_.z = csv_vec_vec[j][2];
-				point_.intensity = (int)csv_vec_vec[j][3];
+				point_.intensity = csv_vec_vec[j][3];
 				cloud_->push_back(point_);
+				if (max_ < csv_vec_vec[j][3]) max_ = csv_vec_vec[j][3];
+				if (min_ > csv_vec_vec[j][3]) min_ = csv_vec_vec[j][3];
 			}
 			string filename_ = filenames[i].substr(0, filenames[i].size() - 4) + ".pcd";
 			pcl::io::savePCDFile<pcl::PointXYZI>(file_dir + "/" + filename_, *cloud_);
 			cout << "saved: " << filename_ << endl;
 		}
+		cout << "min_ = " << min_ << endl;
+		cout << "max_ = " << max_ << endl;
+		//0~255
 	}
+
 	cout << endl;
 }
 
@@ -591,6 +601,7 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 				break;
 			}
 
+			cout << "reading:" << filenames_[index_] << endl;
 			pcl::io::loadPCDFile(foldername_ + "/" + filenames_[index_], *cloud_);
 			cout << "showing:" << filenames_[index_] << endl;
 
