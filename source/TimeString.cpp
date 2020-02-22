@@ -284,7 +284,7 @@ bool CTimeString::getFileNames_extension(std::string folderPath, std::vector<std
 }
 
 
-bool CTimeString::getIsStringValueOrNot(string s_string)
+bool CTimeString::getIsStringNumberOrNot(string s_string)
 {
 	////http://program.station.ez-net.jp/special/handbook/cpp/string/all_of.asp
 	if (std::all_of(s_string.cbegin(), s_string.cend(), isdigit)) return true;
@@ -297,13 +297,21 @@ bool CTimeString::getIsStringValueOrNot(string s_string)
 
 	vector<int> find_vec = find_all(s_string, ".");
 
-	if (find_vec.size() != 1) return false;
+	if (find_vec.size() == 0)
+	{
+		if (!std::all_of(s_string.cbegin(), s_string.cend(), isdigit)) return false;
 
-	string s_former = s_string.substr(0, find_vec[0] - 0);
-	string s_later = s_string.substr(find_vec[0]+1, s_string.size() - (find_vec[0] + 1));
+	}
+	else if (find_vec.size() == 1)
+	{
+		string s_former = s_string.substr(0, find_vec[0] - 0);
+		string s_later = s_string.substr(find_vec[0] + 1, s_string.size() - (find_vec[0] + 1));
 
-	if (!std::all_of(s_former.cbegin(), s_former.cend(), isdigit)) return false;
-	if (!std::all_of(s_later.cbegin(), s_later.cend(), isdigit)) return false;
+		if (!std::all_of(s_former.cbegin(), s_former.cend(), isdigit)) return false;
+		if (!std::all_of(s_later.cbegin(), s_later.cend(), isdigit)) return false;
+
+	}
+	else return false;
 
 	return true;
 }

@@ -57,7 +57,7 @@ public:
 				string s_value;
 
 				s_value = str_.substr(0, find_vec[0]);
-				if (!time_.getIsStringValueOrNot(s_value)) continue;
+				if (!time_.getIsStringNumberOrNot(s_value)) continue;
 
 				if (typeid(T) == typeid(int))
 					one_observation_vec.push_back(stoi(s_value));
@@ -73,7 +73,7 @@ public:
 				while (s_pos < find_vec.size() - 1)
 				{
 					s_value = str_.substr(find_vec[s_pos] + 1, find_vec[s_pos + 1] - (find_vec[s_pos] + 1));
-					if (!time_.getIsStringValueOrNot(s_value))
+					if (!time_.getIsStringNumberOrNot(s_value))
 					{
 						b_break = true;
 						break;
@@ -92,7 +92,7 @@ public:
 				if (b_break) continue;
 
 				s_value = str_.substr(find_vec[s_pos] + 1, str_.size() - (find_vec[s_pos] + 1));
-				if (!time_.getIsStringValueOrNot(s_value)) continue;
+				if (!time_.getIsStringNumberOrNot(s_value)) continue;
 
 				if (typeid(T) == typeid(int))
 					one_observation_vec.push_back(stoi(s_value));
@@ -131,6 +131,6 @@ public:
 	bool getFileNames(std::string folderPath, std::vector<std::string> &file_names);
 	bool getFileNames_extension(std::string folderPath, std::vector<std::string> &file_names,string s_extension);
 
-	bool getIsStringValueOrNot(string s_string);
+	bool getIsStringNumberOrNot(string s_string);
 
 };

@@ -22,6 +22,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 
 	while (!b_finish)
 	{
+		cout << endl;
 		cout << "please input process number" << endl;
 		cout << EN_escape << ": escape" << endl;
 		cout << EN_FreeSpace << ": free space" << endl;
@@ -113,7 +114,8 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		case EN_handregistration:
 			initVisualizer();
 			//HandRegistration("../savedfolder/naraha summer/sequent");
-			HandRegistration("../savedfolder/naraha summer/sequent");
+			//HandRegistration("../savedfolder/naraha summer/sequent");
+			HandRegistration("../savedfolder/temp");
 			break;
 
 		case EN_GetPcdFromCSV:
@@ -341,13 +343,45 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 	vector<string> filenames_;
 	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 
-	//input txt
-	vector<Eigen::Matrix4d>	HM_displacement_vec;
 	std::string filename_txt;
-	filename_txt = foldername_ + "/tramsformation.txt";
+
+	vector<Eigen::Matrix4d>	HM_displacement_vec;
+
 	{
 		vector<vector<double>> trajectory_vec_vec;
-		trajectory_vec_vec = time_.getVecVecFromCSV<double>(filename_txt);
+
+		//input txt
+		vector<string> filenames__txt;
+		time_.getFileNames_extension(foldername_, filenames__txt, ".txt");
+
+		if (filenames__txt.size() == 0)
+		{
+			cout << "found no txt file and make it." << endl;
+
+			//generation
+			filename_txt = foldername_ + "/transformation.txt";
+			for (int i = 0; i < filenames_.size(); i++)
+			{
+				vector<double> trajectory_vec;
+				trajectory_vec.push_back(i);
+				for (int j = 0; j < 6; j++) trajectory_vec.push_back(0.);
+				trajectory_vec_vec.push_back(trajectory_vec);
+			}
+
+		}
+
+		else if (filenames__txt.size() == 1)
+		{
+			trajectory_vec_vec = time_.getVecVecFromCSV<double>(foldername_ + "/" + filenames__txt[0]);
+			filename_txt = foldername_ + "/" + filenames__txt[0];
+		}
+
+		else
+		{
+			cout << "error:too many txt files exist." << endl;
+			return;
+		}
+
 		vector<Eigen::Matrix4d>	HM_trajectory_vec;
 		for (int i = 0; i < trajectory_vec_vec.size(); i++)
 		{
@@ -361,6 +395,7 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 				trajectory_vec_vec[i][6]);
 			HM_trajectory_vec.push_back(HM_trajectory);
 		}
+
 		for (int i = 0; i < HM_trajectory_vec.size(); i++)
 		{
 			if (i == 0)
@@ -386,6 +421,36 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 
 			if (-1 == pcl::io::loadPCDFile(filename_PC, *cloud_moving_before)) break;
 
+			//turn pitch(camera axis)
+			{
+				double pitch_init;
+				pitch_init = 22. * M_PI / 180.;
+				HM_free = Eigen::Matrix4d::Identity();
+				HM_free = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., pitch_init, 0.);
+				Trans_ = Eigen::Affine3f::Identity();
+				Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
+				pcl::transformPointCloud(*cloud_moving_before, *cloud_moving_before, Trans_);
+			}
+
+			//ground
+			bool b_RemoveGround = false;
+			b_RemoveGround = true;
+			if (b_RemoveGround)
+			{
+				double th_height;
+				//th_height = -0.1;	//naraha summer
+				th_height = -0.3;
+				cloud_temp->clear();
+				pcl::copyPointCloud(*cloud_moving_before, *cloud_temp);
+				cloud_moving_before->clear();
+				for (size_t i = 0; i < cloud_temp->size(); i++)
+				{
+					if (th_height > cloud_temp->points[i].z) continue;
+					cloud_moving_before->push_back(cloud_temp->points[i]);
+				}
+			}
+
+
 			cout << "PC(" << index_PC_now << ") number :" << cloud_moving_before->size() << endl;
 
 			cout << endl;
@@ -410,24 +475,6 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 			for (int i = 0; i <= index_PC_now; i++) HM_free = HM_free * HM_displacement_vec[i];
 			HM_Trans_now = HM_free;
 			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
-
-			//ground
-			bool b_RemoveGround;
-			b_RemoveGround = true;
-			if (b_RemoveGround)
-			{
-				double th_height;
-				th_height = -0.1;
-				cloud_temp->clear();
-				pcl::copyPointCloud(*cloud_moving_before, *cloud_temp);
-				cloud_moving_before->clear();
-				for (size_t i = 0; i < cloud_temp->size(); i++)
-				{
-					if (th_height > cloud_temp->points[i].z) continue;
-					cloud_moving_before->push_back(cloud_temp->points[i]);
-				}
-			}
-
 			pcl::transformPointCloud(*cloud_moving_before, *cloud_moving, Trans_);
 
 			b_makeNewPC = false;
@@ -572,6 +619,9 @@ void CVelodyneInterface::HandRegistration(string foldername_)
 		cout << "file has saved!" << endl;
 	}
 	else cout << "file has not saved!" << endl;
+
+	m_viewer->close();
+
 }
 
 
