@@ -655,6 +655,18 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 			pcl::io::loadPCDFile(foldername_ + "/" + filenames_[index_], *cloud_);
 			cout << "showing:" << filenames_[index_] << endl;
 
+			////show max and min
+			//float max_, min_;
+			//max_ = 0.;
+			//min_ = 255.;
+			//for (int i = 0; i < cloud_->size(); i++)
+			//{
+			//	if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
+			//	if (min_ > cloud_->points[i].intensity) min_ = cloud_->points[i].intensity;
+			//}
+			//cout << "max_ = " << max_ << endl;
+			//cout << "min_ = " << min_ << endl;
+
 			index_++;
 
 			if (b_first) b_first = false;
