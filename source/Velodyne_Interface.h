@@ -10,6 +10,8 @@
 
 #include<pcl/registration/transforms.h>
 
+#include <pcl/filters/approximate_voxel_grid.h>
+
 //#include <pcl/common/common_headers.h>
 
 //#include <pcl/filters/passthrough.h>
@@ -24,6 +26,7 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 
 using namespace std;
 typedef pcl::PointXYZI PointType;
+//typedef pcl::PointXYZRGB PointType;
 
 namespace Eigen {
 
@@ -61,6 +64,7 @@ public:
 	void Process();
 	void show();
 	void ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud);
+
 	void ReadAndShowOne(string filename_arg);
 	void TimerWrite();
 	pcl::PointCloud<PointType>::Ptr ElevationAngleFiltering(pcl::PointCloud<PointType>::Ptr cloud);

@@ -44,7 +44,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 			break;
 
 		case EN_FreeSpace:
-			initVisualizer();
+			//initVisualizer();		//XYZRGB
 			FreeSpace();
 			break;
 
@@ -216,6 +216,226 @@ Eigen::Affine3f CVelodyneInterface::calcAffine3fFromHomogeneousMatrix(Eigen::Mat
 
 void CVelodyneInterface::FreeSpace()
 {
+	//cout << "HandRegistration started!" << endl;
+
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>());
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_add(new pcl::PointCloud<pcl::PointXYZRGB>());
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZRGB>());
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZI>());
+
+	pcl::ApproximateVoxelGrid<pcl::PointXYZI> VGFilter;
+	pcl::ApproximateVoxelGrid<pcl::PointXYZRGB> VGFilter_RGB;
+
+	string foldername_ = "../savedfolder/temp";
+
+	CTimeString time_;
+
+	Eigen::Affine3f Trans_;
+	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
+
+	int index_PC_now = 0;
+	bool b_makeNewPC = true;
+	bool b_escaped = false;
+	bool b_break = false;
+
+	vector<string> filenames_;
+	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
+
+	std::string filename_txt;
+
+	//input txt
+	vector<vector<double>> trajectory_vec_vec;
+	{
+		vector<string> filenames__txt;
+		time_.getFileNames_extension(foldername_, filenames__txt, ".txt");
+
+		if (filenames__txt.size() == 0)
+		{
+			cout << "found no txt file." << endl;
+			return;
+		}
+		else if (filenames__txt.size() == 1)
+		{
+			trajectory_vec_vec = time_.getVecVecFromCSV<double>(foldername_ + "/" + filenames__txt[0]);
+			filename_txt = foldername_ + "/" + filenames__txt[0];
+		}
+		cout << "trajectory_vec_vec size = " << trajectory_vec_vec.size() << endl;
+	}
+
+	GetAsyncKeyState(VK_RETURN);
+
+	//PointCloud
+	while (1) {
+		bool b_nir;
+		if (index_PC_now >= 17) b_nir = true;
+		else b_nir = false;
+
+		//input next PointCloud
+		if (b_makeNewPC) {
+			cloud_->clear();
+
+			string filename_PC;
+			filename_PC = filenames_[index_PC_now];
+			cout << endl;
+			cout << "reanding: " << filename_PC << endl;
+			filename_PC = foldername_ + "/" + filename_PC;
+			if (-1 == pcl::io::loadPCDFile(filename_PC, *cloud_)) break;
+
+			//turn pitch(camera axis)
+			{
+				double pitch_init;
+				pitch_init = 22. * M_PI / 180.;
+				HM_free = Eigen::Matrix4d::Identity();
+				HM_free = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., pitch_init, 0.);
+				Trans_ = Eigen::Affine3f::Identity();
+				Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
+				pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
+			}
+
+			//ground
+			bool b_RemoveGround = false;
+			if(!b_nir) b_RemoveGround = true;		//nir
+			if (b_RemoveGround)
+			{
+				double th_height;
+				//th_height = -0.1;	//naraha summer
+				th_height = -0.3;
+				cloud_temp->clear();
+				pcl::copyPointCloud(*cloud_, *cloud_temp);
+				cloud_->clear();
+				for (size_t i = 0; i < cloud_temp->size(); i++)
+				{
+					if (th_height > cloud_temp->points[i].z) continue;
+					cloud_->push_back(cloud_temp->points[i]);
+				}
+			}
+
+			//range
+			if(b_nir)
+			{
+				double th_x, th_z;
+				th_x = 3.;
+				//th_z = -0.4;
+				th_z = -1.2;
+				cloud_temp->clear();
+				pcl::copyPointCloud(*cloud_, *cloud_temp);
+				cloud_->clear();
+				for (int i = 0; i < cloud_temp->size(); i++)
+				{
+					pcl::PointXYZI point_ = cloud_temp->points[i];
+					if (point_.x > th_x) continue;
+					if (point_.z < th_z) continue;
+
+					cloud_->push_back(point_);
+				}
+			}
+
+
+
+			cout << "PC(" << index_PC_now << ") number :" << cloud_->size() << endl;
+
+			cout << "VGF" << endl;
+			double th_VGF = 0.01;
+			VGFilter.setInputCloud(cloud_);
+			VGFilter.setLeafSize(th_VGF, th_VGF, th_VGF);
+			VGFilter.filter(*cloud_);
+
+			cout << "PC(" << index_PC_now << ") number :" << cloud_->size() << endl;
+
+			Trans_ = Eigen::Affine3f::Identity();
+			HM_free = Eigen::Matrix4d::Identity();
+			HM_free = calcHomogeneousMatrixFromVector6d(
+				trajectory_vec_vec[index_PC_now][1],
+				trajectory_vec_vec[index_PC_now][2],
+				trajectory_vec_vec[index_PC_now][3],
+				trajectory_vec_vec[index_PC_now][4],
+				trajectory_vec_vec[index_PC_now][5],
+				trajectory_vec_vec[index_PC_now][6]);
+			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
+			pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
+
+			b_makeNewPC = false;
+		}
+
+		//if ((GetAsyncKeyState(VK_RETURN) & 1) == 1)
+		if (1)
+		{
+			cout << "ENTER pressed" << endl;
+
+			b_makeNewPC = true;
+
+			cloud_add->clear();
+			if (b_nir)
+			{
+				for (int i = 0; i < cloud_->size(); i++)
+				{
+					pcl::PointXYZRGB point_;
+					point_.x = cloud_->points[i].x;
+					point_.y = cloud_->points[i].y;
+					point_.z = cloud_->points[i].z;
+					point_.r = 0;
+					point_.g = (unsigned char)(cloud_->points[i].intensity);//0-255
+					point_.b = 0;
+					cloud_add->push_back(point_);
+				}
+			}
+			else
+			{
+				double max_ = 0.;
+				for (int i = 0; i < cloud_->size(); i++)
+					if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
+				cout << "max_ = " << max_ << endl;
+				for (int i = 0; i < cloud_->size(); i++)
+				{
+					pcl::PointXYZRGB point_;
+					point_.x = cloud_->points[i].x;
+					point_.y = cloud_->points[i].y;
+					point_.z = cloud_->points[i].z;
+					//point_.r = cloud_->points[i].intensity;
+					//point_.r = (unsigned char)(cloud_->points[i].intensity / max_ * 255);
+					point_.r = (unsigned char)(cloud_->points[i].intensity);
+					point_.g = 255;
+					//point_.g = 0;
+					point_.b = 0;
+					cloud_add->push_back(point_);
+				}
+			}
+
+			*cloud_sum += *cloud_add;
+
+			index_PC_now++;
+			if (index_PC_now == trajectory_vec_vec.size()) b_break = true;
+
+		}
+		else if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1)
+		{
+			cout << "ESCAPE pressed" << endl;
+
+			b_escaped = true;
+			break;
+		}
+
+		//if (cloud_sum->size() != 0) {
+		//	ShowPcdFile(cloud_sum);
+		//}
+
+		if (b_break) break;
+	}
+
+	//output pcd
+	if (b_break)
+	{
+		string filename_ = "map_chara.pcd";
+		double th_VGF = 0.01;
+		VGFilter_RGB.setInputCloud(cloud_sum);
+		VGFilter_RGB.setLeafSize(th_VGF, th_VGF, th_VGF);
+		VGFilter_RGB.filter(*cloud_sum);
+		pcl::io::savePCDFile<pcl::PointXYZRGB>(foldername_ + "/" + filename_, *cloud_sum);
+		cout << "saved: " << filename_ << endl;
+		cout << endl;
+	}
+
+	//m_viewer->close();
 
 }
 
@@ -631,9 +851,17 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 	//foldername_ = "\../savedfolder/naraha summer/sequent";
 	CTimeString time_;
 	vector<string> filenames_;
-	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
+	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
+	bool b_nir = false;
+	bool b_mix = false;
+	//time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
+	time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
 
 	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
+	pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
+
+	Eigen::Affine3f Trans_;
+	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
 
 	bool b_first = true;
 	int index_ = 0;
@@ -666,6 +894,57 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 			//}
 			//cout << "max_ = " << max_ << endl;
 			//cout << "min_ = " << min_ << endl;
+
+			//range
+			if (b_nir)
+			{
+				//turn pitch(camera axis)
+				double pitch_init;
+				pitch_init = 22. * M_PI / 180.;
+				HM_free = Eigen::Matrix4d::Identity();
+				HM_free = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., pitch_init, 0.);
+				Trans_ = Eigen::Affine3f::Identity();
+				Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
+				pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
+
+				double th_x, th_z;
+				th_x = 3.;
+				//th_z = -0.4;
+				th_z = -1.2;
+				cloud_temp->clear();
+				pcl::copyPointCloud(*cloud_, *cloud_temp);
+				cloud_->clear();
+				for (int i = 0; i < cloud_temp->size(); i++)
+				{
+					PointType point_ = cloud_temp->points[i];
+					if (point_.x > th_x) continue;
+					if (point_.z < th_z) continue;
+
+					cloud_->push_back(point_);
+				}
+			}
+
+			//else if (b_mix)
+			//{
+			//	double max_ = 0.;
+			//	for (int i = 0; i < cloud_->size(); i++)
+			//		if (max_ > cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
+
+			//	for (int i = 0; i < cloud_->size(); i++)
+			//	{
+			//		pcl::PointXYZRGB point_;
+			//		point_.x = cloud_->points[i].x;
+			//		point_.y = cloud_->points[i].y;
+			//		point_.z = cloud_->points[i].z;
+			//		point_.r = cloud_->points[i].intensity;
+			//		//point_.r = (unsigned char)(cloud_->points[i].intensity / max_);
+			//		point_.g = 255;
+			//		cloud_add->push_back(point_);
+			//	}
+
+			//	point_.r = (unsigned char)(cloud_->points[i].intensity / max_);
+
+			//}
 
 			index_++;
 
@@ -1096,7 +1375,8 @@ void CVelodyneInterface::ReadAndShowOne(string filename_arg) {
 	cout << "viewer closed" << endl;
 }
 
-void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud) {
+void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
+{
 
 	m_viewer->spinOnce();
 
@@ -1115,7 +1395,8 @@ void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud) {
 	else cout << "fail to show" << endl;
 }
 
-void CVelodyneInterface::TimerWrite() {
+void CVelodyneInterface::TimerWrite()
+{
 
 	CTimeString time;
 	int wait_second = 10;
@@ -1279,6 +1560,10 @@ void CVelodyneInterface::initVisualizer() {
 		m_handler = color_handler;
 	}
 	else if (type == typeid(pcl::PointXYZRGBA)) {
+		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
+		m_handler = color_handler;
+	}
+	else if (type == typeid(pcl::PointXYZRGB)) {
 		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
 		m_handler = color_handler;
 	}
