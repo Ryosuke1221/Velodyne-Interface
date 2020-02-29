@@ -313,6 +313,8 @@ void CVelodyneInterface::FreeSpace()
 			//range
 			if(b_nir)
 			{
+				bool b_modify = false;
+				b_modify = true;
 				double th_x, th_z;
 				th_x = 3.;
 				//th_z = -0.4;
@@ -323,8 +325,8 @@ void CVelodyneInterface::FreeSpace()
 				for (int i = 0; i < cloud_temp->size(); i++)
 				{
 					pcl::PointXYZI point_ = cloud_temp->points[i];
-					if (point_.x > th_x) continue;
-					if (point_.z < th_z) continue;
+					if (point_.x > th_x && b_modify) continue;
+					if (point_.z < th_z && b_modify) continue;
 
 					cloud_->push_back(point_);
 				}
@@ -381,18 +383,16 @@ void CVelodyneInterface::FreeSpace()
 			}
 			else
 			{
-				double max_ = 0.;
-				for (int i = 0; i < cloud_->size(); i++)
-					if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
-				cout << "max_ = " << max_ << endl;
+				//double max_ = 0.;
+				//for (int i = 0; i < cloud_->size(); i++)
+				//	if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
+				//cout << "max_ = " << max_ << endl;
 				for (int i = 0; i < cloud_->size(); i++)
 				{
 					pcl::PointXYZRGB point_;
 					point_.x = cloud_->points[i].x;
 					point_.y = cloud_->points[i].y;
 					point_.z = cloud_->points[i].z;
-					//point_.r = cloud_->points[i].intensity;
-					//point_.r = (unsigned char)(cloud_->points[i].intensity / max_ * 255);
 					point_.r = (unsigned char)(cloud_->points[i].intensity);
 					point_.g = 255;
 					//point_.g = 0;
@@ -851,9 +851,9 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 	//foldername_ = "\../savedfolder/naraha summer/sequent";
 	CTimeString time_;
 	vector<string> filenames_;
-	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 	bool b_nir = false;
 	bool b_mix = false;
+	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 	//time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
 	time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
 
