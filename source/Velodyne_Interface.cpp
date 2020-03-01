@@ -316,9 +316,10 @@ void CVelodyneInterface::FreeSpace()
 				bool b_modify = false;
 				b_modify = true;
 				double th_x, th_z;
-				th_x = 3.;
-				//th_z = -0.4;
-				th_z = -1.2;
+				//th_x = 3.;
+				//th_z = -1.2;
+				th_x = 10.;
+				th_z = -100.;
 				cloud_temp->clear();
 				pcl::copyPointCloud(*cloud_, *cloud_temp);
 				cloud_->clear();
@@ -898,6 +899,8 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 			//range
 			if (b_nir)
 			{
+				bool b_modify = false;
+				b_modify = true;
 				//turn pitch(camera axis)
 				double pitch_init;
 				pitch_init = 22. * M_PI / 180.;
@@ -908,17 +911,19 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 				pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
 
 				double th_x, th_z;
-				th_x = 3.;
+				//th_x = 3.;
+				//th_z = -1.2;
+				th_x = 10.;
+				th_z = -100.;
 				//th_z = -0.4;
-				th_z = -1.2;
 				cloud_temp->clear();
 				pcl::copyPointCloud(*cloud_, *cloud_temp);
 				cloud_->clear();
 				for (int i = 0; i < cloud_temp->size(); i++)
 				{
 					PointType point_ = cloud_temp->points[i];
-					if (point_.x > th_x) continue;
-					if (point_.z < th_z) continue;
+					if (point_.x > th_x && b_modify) continue;
+					if (point_.z < th_z && b_modify) continue;
 
 					cloud_->push_back(point_);
 				}
@@ -966,8 +971,8 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 
 }
 
-
-void CVelodyneInterface::getOnlyShow3(vector<CRobotState> state_arg) {
+void CVelodyneInterface::getOnlyShow3(vector<CRobotState> state_arg)
+{
 	//for (int i = 0; i < 181; i++) {
 	//	cout << "RangeData[" << i - 90 << "] = " << vector_arg[i] << endl;
 
@@ -981,8 +986,8 @@ void CVelodyneInterface::getOnlyShow3(vector<CRobotState> state_arg) {
 	getchar();
 }
 
-
-void CVelodyneInterface::getOnlyShow2(vector<double> vector_arg) {
+void CVelodyneInterface::getOnlyShow2(vector<double> vector_arg) 
+{
 	//for (int i = 0; i < 181; i++) {
 	//	cout << "RangeData[" << i - 90 << "] = " << vector_arg[i] << endl;
 
