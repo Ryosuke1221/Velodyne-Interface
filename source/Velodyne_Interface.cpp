@@ -316,10 +316,10 @@ void CVelodyneInterface::FreeSpace()
 				bool b_modify = false;
 				b_modify = true;
 				double th_x, th_z;
-				//th_x = 3.;
-				//th_z = -1.2;
-				th_x = 10.;
-				th_z = -100.;
+				th_x = 3.;
+				th_z = -1.2;
+				//th_x = 10.;
+				//th_z = -100.;
 				cloud_temp->clear();
 				pcl::copyPointCloud(*cloud_, *cloud_temp);
 				cloud_->clear();
@@ -427,7 +427,11 @@ void CVelodyneInterface::FreeSpace()
 	if (b_break)
 	{
 		string filename_ = "map_chara.pcd";
-		double th_VGF = 0.01;
+		double th_VGF;
+		th_VGF = 0.01;
+		//th_VGF = 0.05;
+		//th_VGF = 0.1;
+		//th_VGF = 0.2;
 		VGFilter_RGB.setInputCloud(cloud_sum);
 		VGFilter_RGB.setLeafSize(th_VGF, th_VGF, th_VGF);
 		VGFilter_RGB.filter(*cloud_sum);
