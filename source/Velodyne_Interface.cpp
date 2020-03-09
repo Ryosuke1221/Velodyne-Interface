@@ -267,8 +267,11 @@ void CVelodyneInterface::FreeSpace()
 	//PointCloud
 	while (1) {
 		bool b_nir;
-		if (index_PC_now >= 17) b_nir = true;
+		//if (index_PC_now >= 17) b_nir = true;
+		//else b_nir = false;
+		if (index_PC_now >= 1) b_nir = true;
 		else b_nir = false;
+
 
 		//input next PointCloud
 		if (b_makeNewPC) {
@@ -428,8 +431,8 @@ void CVelodyneInterface::FreeSpace()
 	{
 		string filename_ = "map_chara.pcd";
 		double th_VGF;
-		th_VGF = 0.01;
-		//th_VGF = 0.05;
+		//th_VGF = 0.01;
+		th_VGF = 0.05;
 		//th_VGF = 0.1;
 		//th_VGF = 0.2;
 		VGFilter_RGB.setInputCloud(cloud_sum);
@@ -861,6 +864,8 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
 	//time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
 	time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
+	//time_.getFileNames_extension(foldername_, filenames_, ".pcd"); b_mix = true;
+
 
 	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
 	pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
