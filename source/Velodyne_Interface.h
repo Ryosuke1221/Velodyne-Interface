@@ -25,8 +25,8 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 #define M_PI 3.14159265359
 
 using namespace std;
-//typedef pcl::PointXYZI PointType;
-typedef pcl::PointXYZRGB PointType;
+typedef pcl::PointXYZI PointType;
+//typedef pcl::PointXYZRGB PointType;
 
 namespace Eigen {
 

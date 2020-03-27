@@ -267,10 +267,10 @@ void CVelodyneInterface::FreeSpace()
 	//PointCloud
 	while (1) {
 		bool b_nir;
-		//if (index_PC_now >= 17) b_nir = true;
-		//else b_nir = false;
-		if (index_PC_now >= 1) b_nir = true;
+		if (index_PC_now >= 17) b_nir = true;
 		else b_nir = false;
+		//if (index_PC_now >= 1) b_nir = true;
+		//else b_nir = false;
 
 
 		//input next PointCloud
@@ -862,8 +862,8 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 	bool b_nir = false;
 	bool b_mix = false;
 	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
-	//time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
-	time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
+	time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
+	//time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
 	//time_.getFileNames_extension(foldername_, filenames_, ".pcd"); b_mix = true;
 
 
@@ -922,8 +922,13 @@ void CVelodyneInterface::ShowOnlySequent(string foldername_)
 				double th_x, th_z;
 				//th_x = 3.;
 				//th_z = -1.2;
-				th_x = 10.;
+
+
+				//th_x = 10.;
+				th_x = 4.;
 				th_z = -100.;
+
+
 				//th_z = -0.4;
 				cloud_temp->clear();
 				pcl::copyPointCloud(*cloud_, *cloud_temp);
@@ -1560,6 +1565,7 @@ void CVelodyneInterface::initVisualizer() {
 	m_viewer->setBackgroundColor(0.0, 0.0, 0.0, 0);
 	m_viewer->initCameraParameters();
 	m_viewer->setCameraPosition(0.0, 0.0, 30.0, 0.0, 1.0, 0.0, 0);
+	//m_viewer->removeCoordinateSystem("coordinate");		//remove axis in viewer
 
 	// Point Cloud Color Handler
 	//pcl::visualization::PointCloudColorHandler<PointType>::Ptr handler;	//‚±‚ê‚Íƒƒ“ƒo•Ï”‚É‚µ‚½D
