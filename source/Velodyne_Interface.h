@@ -204,8 +204,6 @@ public:
 
 	void ShowOnlySequent(string foldername_);
 
-	void HandRegistration(string foldername_);
-
 	Eigen::Matrix4d calcHomogeneousMatrixFromVector6d(double X_, double Y_, double Z_,
 		double Roll_, double Pitch_, double Yaw_);
 
@@ -214,7 +212,5 @@ public:
 	Eigen::Affine3f calcAffine3fFromHomogeneousMatrix(Eigen::Matrix4d input_Mat);
 
 	void FreeSpace();
-
-	void GetPcdFromCSV(string file_dir);
 
 };
