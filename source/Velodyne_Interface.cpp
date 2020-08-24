@@ -40,7 +40,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		case EN_ToggleWrite:
 			initVisualizer();
 			connect(ipaddress, port);
-			ToggleWrite("../savedfolder/00_save");
+			ToggleWrite("../data/00_save");
 			disconnect();
 			break;
 
@@ -62,7 +62,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		case EN_sequentshow:
 			//sequent show
 			initVisualizer();
-			showPointCloud_sequently("../savedfolder");
+			showPointCloud_sequently("../data");
 			break;
 		}
 
