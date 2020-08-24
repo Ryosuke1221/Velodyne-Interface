@@ -9,15 +9,10 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	enum OPTION {
 		EN_escape = 0,
 		EN_FreeSpace,
-		EN_ReadAndShowOne,
-		EN_show2PointClouds,
 		EN_ToggleWrite,
-		EN_TimerWrite,
 		EN_capture,
 		EN_capture2D,
 		EN_sequentshow,
-		EN_handregistration,
-		EN_GetPcdFromCSV,
 	};
 
 	while (!b_finish)
@@ -26,10 +21,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 		cout << "please input process number" << endl;
 		cout << EN_escape << ": escape" << endl;
 		cout << EN_FreeSpace << ": free space" << endl;
-		cout << EN_ReadAndShowOne << ": ReadAndShowOne" << endl;
-		cout << EN_show2PointClouds << ": show 2 PointClouds" << endl;
 		cout << EN_ToggleWrite << ": ToggleWrite" << endl;
-		cout << EN_TimerWrite << ": TimerWrite" << endl;
 		cout << EN_capture << ": capture and show" << endl;
 		cout << EN_capture2D << ": capture and show in 2D" << endl;
 		cout << EN_sequentshow << ": sequent show" << endl;
@@ -42,54 +34,20 @@ void CVelodyneInterface::all(string ipaddress, string port)
 			break;
 
 		case EN_FreeSpace:
-			//initVisualizer();		//XYZRGB
 			FreeSpace();
 			break;
 
-		case EN_ReadAndShowOne:
-			//ReadAndShowOne
-			initVisualizer();
-			//velodyne.ReadAndShowOne("\../savedfolder/20181017_0242_45_080.pcd");
-			//velodyne.ReadAndShowOne("\../savedfolder/20181017_0243_07_597.pcd");
-			//ReadAndShowOne("\../savedfolder/20190829_1434_16_859.pcd");			//for making it be plate
-			ReadAndShowOne("\../savedfolder/20200119_1101_51_127.pcd");			//for making it be plate
-
-																								//20181017_0242_56_345
-																								//20181017_0243_07_597
-																								//連続で読み込む場合は，ファイルを最初にまとめて読み込むべし．読み込む用の関数が要る．
-																								//ウィンドウを閉じる処理を入れるべき．
-			break;
-
-		case EN_show2PointClouds:
-			//show 2 PointClouds
-			//string filename1;
-			filename1 = "\../savedfolder/20181017_0242_45_080.pcd";
-			//string filename2;
-			filename2 = "\../savedfolder/20181017_0243_07_597.pcd";
-			ReadAndShow2Clouds(filename1, filename2);
-			break;
-
-
 		case EN_ToggleWrite:
-			//ToggleWrite
 			initVisualizer();
 			connect(ipaddress, port);
-			ToggleWrite();
-			disconnect();
-			break;
-
-		case EN_TimerWrite:
-			//TimerWrite
-			connect(ipaddress, port);
-			TimerWrite();
+			ToggleWrite("../savedfolder/00_save");
 			disconnect();
 			break;
 
 		case EN_capture:
-			//capture and show
 			initVisualizer();
 			connect(ipaddress, port);
-			show();
+			showPointCloud_realtime();
 			disconnect();
 			break;
 
@@ -97,16 +55,14 @@ void CVelodyneInterface::all(string ipaddress, string port)
 			//capture and show in 2D
 			initVisualizer();
 			connect(ipaddress, port);
-			show_2D();
+			showPointCloud_realtime_2D();
 			disconnect();
 			break;
 
 		case EN_sequentshow:
 			//sequent show
 			initVisualizer();
-			//ShowOnlySequent("../savedfolder/naraha summer/sequent");
-			//ShowOnlySequent("../savedfolder/20200119/PointCloud/");
-			ShowOnlySequent("../savedfolder/temp");
+			showPointCloud_sequently("../savedfolder");
 			break;
 		}
 
@@ -115,9 +71,7 @@ void CVelodyneInterface::all(string ipaddress, string port)
 	cout << "process finished (press:ESC)" << endl;
 	GetAsyncKeyState(VK_ESCAPE);
 	while (1)
-	{
 		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
-	}
 
 }
 
@@ -203,562 +157,76 @@ Eigen::Affine3f CVelodyneInterface::calcAffine3fFromHomogeneousMatrix(Eigen::Mat
 
 void CVelodyneInterface::FreeSpace()
 {
-	//cout << "HandRegistration started!" << endl;
-
-	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZI>());
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_add(new pcl::PointCloud<pcl::PointXYZRGB>());
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_sum(new pcl::PointCloud<pcl::PointXYZRGB>());
-	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZI>());
-
-	pcl::ApproximateVoxelGrid<pcl::PointXYZI> VGFilter;
-	pcl::ApproximateVoxelGrid<pcl::PointXYZRGB> VGFilter_RGB;
-
-	string foldername_ = "../savedfolder/temp";
-
-	CTimeString time_;
-
-	Eigen::Affine3f Trans_;
-	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
-
-	int index_PC_now = 0;
-	bool b_makeNewPC = true;
-	bool b_escaped = false;
-	bool b_break = false;
-
-	vector<string> filenames_;
-	time_.getFileNames_extension(foldername_, filenames_, ".pcd");
-
-	std::string filename_txt;
-
-	//input txt
-	vector<vector<double>> trajectory_vec_vec;
-	{
-		vector<string> filenames__txt;
-		time_.getFileNames_extension(foldername_, filenames__txt, ".txt");
-
-		if (filenames__txt.size() == 0)
-		{
-			cout << "found no txt file." << endl;
-			return;
-		}
-		else if (filenames__txt.size() == 1)
-		{
-			CTimeString::getCSVFromVecVec(trajectory_vec_vec, foldername_ + "/" + filenames__txt[0]);
-			filename_txt = foldername_ + "/" + filenames__txt[0];
-		}
-		cout << "trajectory_vec_vec size = " << trajectory_vec_vec.size() << endl;
-	}
-
-	GetAsyncKeyState(VK_RETURN);
-
-	//PointCloud
-	while (1) {
-		bool b_nir;
-		if (index_PC_now >= 17) b_nir = true;
-		else b_nir = false;
-		//if (index_PC_now >= 1) b_nir = true;
-		//else b_nir = false;
-
-
-		//input next PointCloud
-		if (b_makeNewPC) {
-			cloud_->clear();
-
-			string filename_PC;
-			filename_PC = filenames_[index_PC_now];
-			cout << endl;
-			cout << "reanding: " << filename_PC << endl;
-			filename_PC = foldername_ + "/" + filename_PC;
-			if (-1 == pcl::io::loadPCDFile(filename_PC, *cloud_)) break;
-
-			//turn pitch(camera axis)
-			{
-				double pitch_init;
-				pitch_init = 22. * M_PI / 180.;
-				HM_free = Eigen::Matrix4d::Identity();
-				HM_free = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., pitch_init, 0.);
-				Trans_ = Eigen::Affine3f::Identity();
-				Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
-				pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
-			}
-
-			//ground
-			bool b_RemoveGround = false;
-			if(!b_nir) b_RemoveGround = true;		//nir
-			if (b_RemoveGround)
-			{
-				double th_height;
-				//th_height = -0.1;	//naraha summer
-				th_height = -0.3;
-				cloud_temp->clear();
-				pcl::copyPointCloud(*cloud_, *cloud_temp);
-				cloud_->clear();
-				for (size_t i = 0; i < cloud_temp->size(); i++)
-				{
-					if (th_height > cloud_temp->points[i].z) continue;
-					cloud_->push_back(cloud_temp->points[i]);
-				}
-			}
-
-			//range
-			if(b_nir)
-			{
-				bool b_modify = false;
-				b_modify = true;
-				double th_x, th_z;
-				th_x = 3.;
-				th_z = -1.2;
-				//th_x = 10.;
-				//th_z = -100.;
-				cloud_temp->clear();
-				pcl::copyPointCloud(*cloud_, *cloud_temp);
-				cloud_->clear();
-				for (int i = 0; i < cloud_temp->size(); i++)
-				{
-					pcl::PointXYZI point_ = cloud_temp->points[i];
-					if (point_.x > th_x && b_modify) continue;
-					if (point_.z < th_z && b_modify) continue;
-
-					cloud_->push_back(point_);
-				}
-			}
-
-
-
-			cout << "PC(" << index_PC_now << ") number :" << cloud_->size() << endl;
-
-			cout << "VGF" << endl;
-			double th_VGF = 0.01;
-			VGFilter.setInputCloud(cloud_);
-			VGFilter.setLeafSize(th_VGF, th_VGF, th_VGF);
-			VGFilter.filter(*cloud_);
-
-			cout << "PC(" << index_PC_now << ") number :" << cloud_->size() << endl;
-
-			Trans_ = Eigen::Affine3f::Identity();
-			HM_free = Eigen::Matrix4d::Identity();
-			HM_free = calcHomogeneousMatrixFromVector6d(
-				trajectory_vec_vec[index_PC_now][1],
-				trajectory_vec_vec[index_PC_now][2],
-				trajectory_vec_vec[index_PC_now][3],
-				trajectory_vec_vec[index_PC_now][4],
-				trajectory_vec_vec[index_PC_now][5],
-				trajectory_vec_vec[index_PC_now][6]);
-			Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
-			pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
-
-			b_makeNewPC = false;
-		}
-
-		//if ((GetAsyncKeyState(VK_RETURN) & 1) == 1)
-		if (1)
-		{
-			cout << "ENTER pressed" << endl;
-
-			b_makeNewPC = true;
-
-			cloud_add->clear();
-			if (b_nir)
-			{
-				for (int i = 0; i < cloud_->size(); i++)
-				{
-					pcl::PointXYZRGB point_;
-					point_.x = cloud_->points[i].x;
-					point_.y = cloud_->points[i].y;
-					point_.z = cloud_->points[i].z;
-					point_.r = 0;
-					point_.g = (unsigned char)(cloud_->points[i].intensity);//0-255
-					point_.b = 0;
-					cloud_add->push_back(point_);
-				}
-			}
-			else
-			{
-				//double max_ = 0.;
-				//for (int i = 0; i < cloud_->size(); i++)
-				//	if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
-				//cout << "max_ = " << max_ << endl;
-				for (int i = 0; i < cloud_->size(); i++)
-				{
-					pcl::PointXYZRGB point_;
-					point_.x = cloud_->points[i].x;
-					point_.y = cloud_->points[i].y;
-					point_.z = cloud_->points[i].z;
-					point_.r = (unsigned char)(cloud_->points[i].intensity);
-					point_.g = 255;
-					//point_.g = 0;
-					point_.b = 0;
-					cloud_add->push_back(point_);
-				}
-			}
-
-			*cloud_sum += *cloud_add;
-
-			index_PC_now++;
-			if (index_PC_now == trajectory_vec_vec.size()) b_break = true;
-
-		}
-		else if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1)
-		{
-			cout << "ESCAPE pressed" << endl;
-
-			b_escaped = true;
-			break;
-		}
-
-		//if (cloud_sum->size() != 0) {
-		//	ShowPcdFile(cloud_sum);
-		//}
-
-		if (b_break) break;
-	}
-
-	//output pcd
-	if (b_break)
-	{
-		string filename_ = "map_chara.pcd";
-		double th_VGF;
-		//th_VGF = 0.01;
-		th_VGF = 0.05;
-		//th_VGF = 0.1;
-		//th_VGF = 0.2;
-		VGFilter_RGB.setInputCloud(cloud_sum);
-		VGFilter_RGB.setLeafSize(th_VGF, th_VGF, th_VGF);
-		VGFilter_RGB.filter(*cloud_sum);
-		pcl::io::savePCDFile<pcl::PointXYZRGB>(foldername_ + "/" + filename_, *cloud_sum);
-		cout << "saved: " << filename_ << endl;
-		cout << endl;
-	}
-
-	//m_viewer->close();
 
 }
 
-void CVelodyneInterface::ShowOnlySequent(string foldername_)
+void CVelodyneInterface::showPointCloud_sequently(string dir_)
 {
-	//foldername_ = "../savedfolder/20200119/PointCloud";
-	//foldername_ = "\../savedfolder/naraha summer/sequent";
-	CTimeString time_;
-	vector<string> filenames_;
-	bool b_nir = false;
-	bool b_mix = false;
-	//time_.getFileNames_extension(foldername_, filenames_, ".pcd");
-	time_.getFileNames_extension(foldername_, filenames_, "nir.pcd"); b_nir = true;
-	//time_.getFileNames_extension(foldername_, filenames_, "chara.pcd"); b_mix = true;
-	//time_.getFileNames_extension(foldername_, filenames_, ".pcd"); b_mix = true;
 
+	string s_folder;
+	{
+		vector<string> filenames_folder;
 
-	pcl::PointCloud<PointType>::Ptr cloud_(new pcl::PointCloud<PointType>());
-	pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
+		CTimeString::getFileNames_folder(dir_, filenames_folder);
+		for (int i = 0; i < filenames_folder.size(); i++)
+		{
+			string s_i = to_string(i);
+			if (s_i.size() < 2) s_i = " " + s_i;
+			cout << "i:" << s_i << " " << filenames_folder[i] << endl;
+		}
+		cout << endl;
+		cout << "input folder(index) you want to calc ->";
+		int i_folder;
+		cin >> i_folder;
+		s_folder = filenames_folder[i_folder];
+	}
 
-	Eigen::Affine3f Trans_;
-	Eigen::Matrix4d HM_free = Eigen::Matrix4d::Identity();
+	//input pointcloud
+	vector<pcl::PointCloud<PointType>::Ptr> cloud_vec;
+	{
+		vector<string> filenames_;
+		CTimeString::getFileNames_extension(dir_ + "/" + s_folder, filenames_, ".pcd");
+		for (int i = 0; i < filenames_.size(); i++)
+		{
+			pcl::PointCloud<PointType>::Ptr cloud(new pcl::PointCloud<PointType>());
+			pcl::io::loadPCDFile(dir_ + "/" + s_folder + "/" + filenames_[i], *cloud);
+			cloud->is_dense = true;
+			cloud_vec.push_back(cloud);
+		}
+	}
 
-	bool b_first = true;
-	int index_ = 0;
+	cout << "press SPACE to go next" << endl;
+	cout << "press ESC to finish" << endl;
 
-	cout << "file number:" << filenames_.size() << endl;
+	int index_cloud = 0;
+	pcl::PointCloud<PointType>::Ptr cloud_showing(new pcl::PointCloud<PointType>());
 
-	while (!m_viewer->wasStopped()) {
+	while (!m_viewer->wasStopped())
+	{
+
 		//change PointCloud
-		short key_num = GetAsyncKeyState(VK_SPACE);
-		if ((key_num & 1) == 1 || b_first) {
+		if (((GetAsyncKeyState(VK_SPACE) & 1) == 1) && (index_cloud != cloud_vec.size()))
+		{
 
-			if (index_ == filenames_.size())
-			{
-				cout << "index over" << endl;
-				break;
-			}
-
-			cout << "reading:" << filenames_[index_] << endl;
-			pcl::io::loadPCDFile(foldername_ + "/" + filenames_[index_], *cloud_);
-			cout << "showing:" << filenames_[index_] << endl;
-
-			////show max and min
-			//float max_, min_;
-			//max_ = 0.;
-			//min_ = 255.;
-			//for (int i = 0; i < cloud_->size(); i++)
-			//{
-			//	if (max_ < cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
-			//	if (min_ > cloud_->points[i].intensity) min_ = cloud_->points[i].intensity;
-			//}
-			//cout << "max_ = " << max_ << endl;
-			//cout << "min_ = " << min_ << endl;
-
-			//range
-			if (b_nir)
-			{
-				bool b_modify = false;
-				b_modify = true;
-				//turn pitch(camera axis)
-				double pitch_init;
-				pitch_init = 22. * M_PI / 180.;
-				HM_free = Eigen::Matrix4d::Identity();
-				HM_free = calcHomogeneousMatrixFromVector6d(0., 0., 0., 0., pitch_init, 0.);
-				Trans_ = Eigen::Affine3f::Identity();
-				Trans_ = calcAffine3fFromHomogeneousMatrix(HM_free);
-				pcl::transformPointCloud(*cloud_, *cloud_, Trans_);
-
-				double th_x, th_z;
-				//th_x = 3.;
-				//th_z = -1.2;
-
-
-				//th_x = 10.;
-				th_x = 4.;
-				th_z = -100.;
-
-
-				//th_z = -0.4;
-				cloud_temp->clear();
-				pcl::copyPointCloud(*cloud_, *cloud_temp);
-				cloud_->clear();
-				for (int i = 0; i < cloud_temp->size(); i++)
-				{
-					PointType point_ = cloud_temp->points[i];
-					if (point_.x > th_x && b_modify) continue;
-					if (point_.z < th_z && b_modify) continue;
-
-					cloud_->push_back(point_);
-				}
-			}
-
-			//else if (b_mix)
-			//{
-			//	double max_ = 0.;
-			//	for (int i = 0; i < cloud_->size(); i++)
-			//		if (max_ > cloud_->points[i].intensity) max_ = cloud_->points[i].intensity;
-
-			//	for (int i = 0; i < cloud_->size(); i++)
-			//	{
-			//		pcl::PointXYZRGB point_;
-			//		point_.x = cloud_->points[i].x;
-			//		point_.y = cloud_->points[i].y;
-			//		point_.z = cloud_->points[i].z;
-			//		point_.r = cloud_->points[i].intensity;
-			//		//point_.r = (unsigned char)(cloud_->points[i].intensity / max_);
-			//		point_.g = 255;
-			//		cloud_add->push_back(point_);
-			//	}
-
-			//	point_.r = (unsigned char)(cloud_->points[i].intensity / max_);
-
-			//}
-
-			index_++;
-
-			if (b_first) b_first = false;
+			pcl::copyPointCloud(*cloud_vec[index_cloud], *cloud_showing);
+			cout << "index:" << index_cloud << endl;
+			index_cloud++;
 		}
-		ShowPcdFile(cloud_);
 
-		//escape
-		short key_num_esc = GetAsyncKeyState(VK_ESCAPE);
-		if ((key_num_esc & 1) == 1) {
-			cout << "toggled!" << endl;
-			break;
-		}
+		//go to finish
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
+
+		//show point cloud
+		ShowPcdFile(cloud_showing);
+
 	}
 
 	cout << "finished" << endl;
-
 	m_viewer->close();
-
 }
 
-void CVelodyneInterface::getOnlyShow3(vector<CRobotState> state_arg)
+void CVelodyneInterface::showPointCloud_realtime_2D()
 {
-	//for (int i = 0; i < 181; i++) {
-	//	cout << "RangeData[" << i - 90 << "] = " << vector_arg[i] << endl;
-
-	//}
-	for (int i = 0; i < state_arg.size(); i++) {
-		cout << "StateDataX[" << (int)(i - (state_arg.size() - 1) / 2) << "] = " << state_arg[i].x << endl;
-		cout << "StateDataY[" << (int)(i - (state_arg.size() - 1) / 2) << "] = " << state_arg[i].y << endl << endl;;
-
-	}
-
-	getchar();
-}
-
-void CVelodyneInterface::getOnlyShow2(vector<double> vector_arg) 
-{
-	//for (int i = 0; i < 181; i++) {
-	//	cout << "RangeData[" << i - 90 << "] = " << vector_arg[i] << endl;
-
-	//}
-	for (int i = 0; i < vector_arg.size(); i++) {
-		cout << "RangeData[" << (int)(i - (vector_arg.size()-1)/2) << "] = " << vector_arg[i] << endl;
-
-	}
-
-
-	//double *Array;
-	//Array = new double[181];
-	//for (int i = 0; i < 181; i++) {
-
-	//	Array[i] = 1.;
-	//}
-
-	//Array = ;
-
-	//for (int i = 0; i < 181; i++) {
-
-	//	cout << "Range[" << i << "] = " << Array[i] << endl;
-	//}
-
-	getchar();
-}
-
-
-void CVelodyneInterface::getOnlyShow(double* array_arg) {
-	for (int i = 0; i < 181; i++) {
-		cout << "RangeData[" << i-90 << "] = " << array_arg[i] << endl;
-
-	}
-	//double *Array;
-	//Array = new double[181];
-	//for (int i = 0; i < 181; i++) {
-
-	//	Array[i] = 1.;
-	//}
-
-	//Array = ;
-
-	//for (int i = 0; i < 181; i++) {
-
-	//	cout << "Range[" << i << "] = " << Array[i] << endl;
-	//}
-
-	getchar();
-}
-
-
-vector<double> CVelodyneInterface::getDegVector(pcl::PointCloud<PointType>::Ptr cloud,int NumOfData) {
-	//vector<CRobotState::Position> PositionVector;
-	vector<double> RangeVector;
-	vector<double> MinErrorArray;
-	//auto Itr = RangeVector_181.begin();
-
-	//debug
-	CTimeString ts;
-	cout << "start at " << ts.getTimeString() << endl;
-
-	double resolution = 180. / (NumOfData - 1);//resolution		181->1deg, 361->0.5deg 
-
-
-
-	//initialize
-	for (int i = 0; i < NumOfData; i++) {
-		//CRobotState::Position position_;
-		//position_.x = 100.;
-		//position_.y = 0.;
-		//position_x = 0.;
-		//PositionVector.push_back(position_)
-
-		RangeVector.push_back(100.);		//Max Range
-		MinErrorArray.push_back(resolution);
-	}
-
-	//calculate reduced data
- 	for (int i = 0; i < cloud->size(); i++) {
-		double angle_deg;
-		double standard;		// 1.0, 2.0, 3.0, ...(integer)
-		double error;		//distance from angle to standard
-
-		angle_deg = atan2(cloud->points[i].x, cloud->points[i].y)*180. / M_PI;
-
-		//debug
-		// convertion from clockwise to anticlockwise
-		angle_deg = -angle_deg + 90.;
-		if (angle_deg >= 180.) angle_deg -= 360.;
-
-		//debug
-		//cout << "range["<<angle_deg<<"] =" << sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.)) << endl;
-
-		if (!(-90. - resolution / 2. < angle_deg && angle_deg < 90. + resolution / 2.)) continue;
-
-
-		int standard_num;		//-180,-179,...,0,...,180
-		if(angle_deg>=0) standard_num = (int)((angle_deg + resolution / 2.) / resolution);
-		else standard_num = (int)((angle_deg - resolution / 2.) / resolution);
-
-
-		standard = (double)(standard_num)*resolution;		//-90,-89.5,...,,89.5,90
-															//このstandardとは，最も近い「キリの良い値」である．
-															//キリの良い値=resolutionをk倍したもの
-
-		error = fabs(angle_deg - standard);
-
-		//debug
-		//cout << "array_num = " << standard_num << endl;
-
-		if (MinErrorArray[standard_num + (NumOfData - 1) / 2] > error) {
-			MinErrorArray[standard_num + (NumOfData - 1) / 2] = error;
-
-			//そのまま代入して大丈夫？座標変換とかが心配．
-			//PositionVector[standard_num + (NumOfData - 1) / 2].x = cloud->points[i].x;
-			//PositionVector[standard_num + (NumOfData - 1) / 2].y = cloud->points[i].y;
-
-			RangeVector[standard_num + (NumOfData - 1) / 2] = sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.));
-
-		}
-	}
-
-	cout << "end at " << ts.getTimeString() << endl;
-
-
-	return RangeVector;
-}
-
-
-double* CVelodyneInterface::convertPCto181DegArray(pcl::PointCloud<PointType>::Ptr cloud) {
-
-	double *RangeArray_181;
-	RangeArray_181 = new double[181];		//Can this result memory leak ?
-	//double RangeArray_181[181];
-
-	double MinErrorArray_181[181];
-
-	for (int i = 0; i < 181; i++) {
-		RangeArray_181[i] = 100.;		
-		MinErrorArray_181[i] = 1.;
-	}
-
-	for (int i = 0; i < cloud->size(); i++)	{
-
-		double angle_deg;
-		int standard;		// 1.0, 2.0, 3.0, ...(integer)
-		double error;		//distance from angle to standard
-
-		angle_deg = atan2(cloud->points[i].x, cloud->points[i].y)*180. / M_PI;
-
-		// convertion from clockwise to anticlockwise
-		angle_deg = -angle_deg + 90.;
-		if (angle_deg >= 180.) angle_deg -= 360.;
-
-		//debug
-		//cout << "range["<<angle_deg<<"] =" << sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.)) << endl;
-
-		if (!(-91. < angle_deg && angle_deg < 91.)) continue;
-
-		standard = (int)(angle_deg + 0.5);
-
-		error = fabs(angle_deg - standard);
-
-		if (MinErrorArray_181[standard + 90] > error) {
-			MinErrorArray_181[standard + 90] = error;
-			RangeArray_181[standard + 90] = sqrt(pow(cloud->points[i].x,2.)+ pow(cloud->points[i].y, 2.));
-			
-		}
-
-	}
-
-	return RangeArray_181;
-}
-
-
-void CVelodyneInterface::show_2D() {
 
 	pcl::PointCloud<PointType>::Ptr cloud;
 	//pcl::PointCloud<PointType>::ConstPtr cloud;
@@ -777,13 +245,12 @@ void CVelodyneInterface::show_2D() {
 			}
 		}
 
-		short key_num_espace = GetAsyncKeyState(VK_ESCAPE);
-		if ((key_num_espace & 1) == 1) {
-			cout << "toggled!" << endl;
-			break;
-		}
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
 
 	}
+
+	cout << "finished" << endl;
+	m_viewer->close();
 }
 
 pcl::PointCloud<PointType>::Ptr CVelodyneInterface::getPointCloud() {
@@ -793,186 +260,39 @@ pcl::PointCloud<PointType>::Ptr CVelodyneInterface::getPointCloud() {
 
 }
 
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::get2DPointCloud() {
+pcl::PointCloud<PointType>::Ptr CVelodyneInterface::get2DPointCloud()
+{
 	boost::mutex::scoped_lock lock(m_mutex);
 	pcl::PointCloud<PointType>::Ptr cloud_ptr(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
-	return ElevationAngleFiltering(cloud_ptr);
+	float range_pitch_rad = 30. * D2R;
+	int num_laser = 16;
+	return ElevationAngleFiltering(cloud_ptr, range_pitch_rad, num_laser);
 }
 
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::get2DPointCloud_(boost::mutex &mutex_arg) {
-	boost::mutex::scoped_lock lock(mutex_arg);
-	pcl::PointCloud<PointType>::Ptr cloud_ptr(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
-	return ElevationAngleFiltering(cloud_ptr);
-}
-
-
-pcl::PointCloud<PointType>::ConstPtr CVelodyneInterface::getPointCloud_ConstPtr() {
+pcl::PointCloud<PointType>::ConstPtr CVelodyneInterface::getPointCloud_ConstPtr()
+{
 	boost::mutex::scoped_lock lock(m_mutex);
 	return m_PointCloud_ConstPtr;
 }
 
-void CVelodyneInterface::ReadAndShow2Clouds(string filename1, string filename2) {
-
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;				//大丈夫？
-	viewer.reset(new pcl::visualization::PCLVisualizer("Velodyne Viewer"));
-	viewer->initCameraParameters();
-
-	pcl::visualization::PointCloudColorHandler<PointType>::Ptr handler;
-
-	int v1 = 0;
-	viewer->createViewPort(0.0, 0.0, 0.5, 1.0, v1);
-	viewer->addCoordinateSystem(3.0, "coordinate", v1);
-	viewer->setBackgroundColor(0.0, 0.0, 0.0, v1);
-	viewer->setCameraPosition(0.0, 0.0, 30.0, 0.0, 1.0, 0.0, v1);
-
-	int v2 = 0;
-	viewer->createViewPort(0.5, 0.0, 1.0, 1.0, v2);
-	viewer->addCoordinateSystem(3.0, "coordinate", v2);
-	viewer->setBackgroundColor(0.05, 0.05, 0.05, v2);
-	viewer->setCameraPosition(0.0, 0.0, 30.0, 0.0, 1.0, 0.0, v2);
-
-	const std::type_info& type = typeid(PointType);
-	if (type == typeid(pcl::PointXYZ)) {
-		std::vector<double> color = { 255.0, 255.0, 255.0 };
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerCustom<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerCustom<PointType>(color[0], color[1], color[2]));
-		handler = color_handler;
-	}
-	else if (type == typeid(pcl::PointXYZI)) {
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerGenericField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerGenericField<PointType>("intensity"));
-		handler = color_handler;
-	}
-	else if (type == typeid(pcl::PointXYZRGBA)) {
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
-		handler = color_handler;
-	}
-	else {
-		throw std::runtime_error("This PointType is unsupported.");
-	}
-
-	cout << "wait for reading..." << endl;
-	pcl::PointCloud<PointType> cloud1;
-	pcl::io::loadPCDFile(filename1, cloud1);
-	pcl::PointCloud<PointType>::Ptr cloud1c(new pcl::PointCloud<PointType>());
-	cloud1c = cloud1.makeShared();
-	handler->setInputCloud(cloud1c);
-	if (!viewer->updatePointCloud(cloud1c, *handler, "cloud1")) {
-		viewer->addPointCloud(cloud1c, *handler, "cloud11", v1);
-	}
-
-	pcl::PointCloud<PointType> cloud2;
-	pcl::io::loadPCDFile(filename2, cloud2);
-	pcl::PointCloud<PointType>::Ptr cloud2c(new pcl::PointCloud<PointType>());
-	cloud2c = cloud2.makeShared();
-	handler->setInputCloud(cloud2c);
-	if (!viewer->updatePointCloud(cloud2c, *handler, "cloud2")) {
-		viewer->addPointCloud(cloud2c, *handler, "cloud2", v2);
-	}
-	cout << "succeeded reading files!" << endl;
-
-	while (1) {
-		viewer->spinOnce();
-		short key_num_espace = GetAsyncKeyState(VK_ESCAPE);
-		if ((key_num_espace & 1) == 1) {
-			cout << "toggled!" << endl;
-			break;
-		}
-
-	}
-}
-
-
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::ElevationAngleFiltering(pcl::PointCloud<PointType>::Ptr cloud) {
-
+pcl::PointCloud<PointType>::Ptr CVelodyneInterface::ElevationAngleFiltering(pcl::PointCloud<PointType>::Ptr cloud,
+	float range_pitch_rad, int num_laser)
+{
+	float range_pitch_divide = range_pitch_rad / (float)(num_laser - 1);
+	float th_pitch_abs = (range_pitch_divide + range_pitch_divide * 2) / 2.;	//mean of most vertical and second vertical
 	pcl::PointCloud<PointType>::Ptr cloud_filtered(new pcl::PointCloud<PointType>());
-
-	//CTimeString time;
-
-	//cout << "first points.size = " << cloud->points.size() << endl;
-	//cout << "and now" << time.getTimeStirng() << endl;
 	for (size_t i = 0; i < cloud->points.size(); i++) {
-			double sin_elevation = cloud->points[i].z / sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.) + pow(cloud->points[i].z, 2.));
-			double angle_ = asin(sin_elevation);
-
-			//if (angle_AbsoluteValue < 1.5*(M_PI/180.)) {
-			if(0 < angle_ && angle_ < 1.5*(M_PI/180)){
-				//cast in horizontal plane
-				cloud->points[i].z = 0.;
-				cloud_filtered->points.push_back(cloud->points[i]);
-				//cout << "added" << endl;
-
-			}
-			//else cout << "not added" << endl;
-				
+		double sin_elevation = cloud->points[i].z / sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.) + pow(cloud->points[i].z, 2.));
+		double angle_abs = fabs(asin(sin_elevation));
+		if (angle_abs >= th_pitch_abs) continue;
+		cloud->points[i].z = 0.;
+		cloud_filtered->points.push_back(cloud->points[i]);
 	}
-	//cout << "result point.size = " << cloud_filtered->points.size() << endl;
-	//cout << "and now" << time.getTimeStirng() << endl;
-
 	//process to prevent error occuring
 	cloud_filtered->width = 1;
 	cloud_filtered->height = cloud_filtered->points.size();
-
+	cloud_filtered->is_dense = true;
 	return cloud_filtered;
-}
-
-void CVelodyneInterface::ReadAndShowOne(string filename_arg) {
-
-	pcl::PointCloud<PointType> cloud;
-	pcl::io::loadPCDFile(filename_arg, cloud);									//PtrではなくPointCloudで保存．Ptrの参照外しは渡せない．
-	cout << "readed" << endl;
-
-	////plate mode
-	//pcl::PointCloud<PointType>::Ptr cloud_filtered;
-	//cloud_filtered = ElevationAngleFiltering(cloud.makeShared());				//PointCloud -> Ptr
-	//////save
-	////if (cloud_filtered) {
-	////	cout << "found" << endl;
-	////	pcl::io::savePCDFile<PointType>("\../savedfolder/20181017_0242_45_080_cut.pcd", *cloud_filtered);		//ポインタではなく値で保存
-	////}
-	////else {
-	////	cout << "not found" << endl;
-	////	return;
-	////}
-	////showing
-	//while (!m_viewer->wasStopped()) {
-	//	ShowPcdFile(cloud_filtered);
-	//	if (toggle.isToggleChanged()) {
-	//		cout << "Toggled!" << endl;
-	//		break;
-	//	}
-	//}
-
-
-	////
-	////getOnlyShow(convertPCto181DegArray(cloud_filtered));
-	//double* array_;
-	//array_ = new double[181];
-	//array_ = convertPCto181DegArray(cloud_filtered);
-	//getOnlyShow(array_);
-	//delete array_;
-
-	//getOnlyShow2(getDegVector(cloud_filtered,361));
-
-	//getOnlyShow3(getDegStateVector(cloud_filtered,361));
-
-
-	//normal mode
-	while (!m_viewer->wasStopped()) {
-		ShowPcdFile(cloud.makeShared());
-		short key_num_espace = GetAsyncKeyState(VK_ESCAPE);
-		if ((key_num_espace & 1) == 1) {
-			cout << "toggled!" << endl;
-			break;
-		}
-
-	}
-
-	////spin mode
-	//m_handler->setInputCloud(cloud.makeShared());
-	//m_viewer->updatePointCloud(cloud.makeShared(), *m_handler, "cloud");
-	//m_viewer->addPointCloud(cloud.makeShared(), *m_handler, "cloud");
-	//m_viewer->spin();
-
-	cout << "viewer closed" << endl;
 }
 
 void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
@@ -980,11 +300,9 @@ void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
 
 	m_viewer->spinOnce();
 
-	//ファイルのポインタを受け取るようにする？
 	if (p_cloud) {
-		//pcl::PointCloud<PointType>::ConstPtr cloud = p_cloud;					//なぜ代入できた？
 
-		// Update Point Cloud									//値は渡せない？
+		// Update Point Cloud
 		m_handler->setInputCloud(p_cloud);
 		if (!m_viewer->updatePointCloud(p_cloud, *m_handler, "cloud")) {
 			m_viewer->addPointCloud(p_cloud, *m_handler, "cloud");
@@ -995,69 +313,22 @@ void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
 	else cout << "fail to show" << endl;
 }
 
-void CVelodyneInterface::TimerWrite()
-{
-
-	CTimeString time;
-	int wait_second = 10;
-	cout << "Please write waiting time[s]:";
-	cin >> wait_second;
-
-	while (1) {
-		cout << "waiting..." << endl;
-		Sleep(10);
-		short key_num = GetAsyncKeyState(VK_SPACE);
-		if ((key_num & 1) == 1) {
-			break;
-		}
-
-	}
-	cout << "Toggled and start!!" << endl;
-	Sleep(wait_second * 1000);
-
-	while (1) {
-		boost::mutex::scoped_try_lock lock(m_mutex);
-		if (lock.owns_lock() && m_PointCloud_ConstPtr) {
-			pcl::io::savePCDFile<PointType>("\../savedfolder/" + time.getTimeString() + ".pcd", *m_PointCloud_ConstPtr);
-			cout << "1 Written!" << endl;
-			break;
-		}
-	}
-
-	//Sleep(10*1000);
-	//
-	//while (1) {
-	//	boost::mutex::scoped_try_lock lock(m_mutex);
-	//	if (lock.owns_lock() && m_PointCloud_ConstPtr) {
-	//		pcl::io::savePCDFile<PointType>("\../savedfolder/" + time.getTimeString() + ".pcd", *m_PointCloud_ConstPtr);
-	//		cout << "2 Written!" << endl;
-	//		break;
-	//	}
-	//}
-
-}
-
-
-void CVelodyneInterface::ToggleWrite() {
+void CVelodyneInterface::ToggleWrite(string dir_) {
 
 	bool b_AttemptCapture = false;
 
-	CTimeString time;
-
 	int num_data = 0;
 
-	////描画のループ
 	cout << "Press SPACE to screenshot" << endl;
+	cout << "Press SPACE to finish" << endl;
+
 	while (!m_viewer->wasStopped()) {
 		// Update Viewer
 		m_viewer->spinOnce();
 
-		{
-			short key_num = GetAsyncKeyState(VK_SPACE);
-			if ((key_num & 1) == 1) {
-				b_AttemptCapture = true;
-				cout << "toggled!" << endl;
-			}
+		if ((GetAsyncKeyState(VK_SPACE) & 1) == 1) {
+			b_AttemptCapture = true;
+			cout << "toggled!" << endl;
 		}
 
 		boost::mutex::scoped_try_lock lock(m_mutex);
@@ -1071,15 +342,9 @@ void CVelodyneInterface::ToggleWrite() {
 
 			if (b_AttemptCapture == true) {
 				string filename_;
-				filename_ = time.getTimeString() + ".pcd";
-				//filename_ = to_string(num_data);
-				//if (filename_.size() < 4) filename_ = "0" + filename_;
-				//if (filename_.size() < 4) filename_ = "0" + filename_;
-				//if (filename_.size() < 4) filename_ = "0" + filename_;
-				//filename_ += ".pcd";
-
+				filename_ = CTimeString::getTimeString() + ".pcd";
 				cout << filename_ << endl;
-				pcl::io::savePCDFile<PointType>("\../savedfolder/" + filename_, *m_PointCloud_ConstPtr);
+				pcl::io::savePCDFile<PointType>(dir_ + "/" + filename_, *m_PointCloud_ConstPtr);
 				b_AttemptCapture = false;
 				cout << "↑Written!" << endl;
 				num_data++;
@@ -1087,15 +352,11 @@ void CVelodyneInterface::ToggleWrite() {
 			}
 		}
 
-		short key_num_espace = GetAsyncKeyState(VK_ESCAPE);
-		if ((key_num_espace & 1) == 1) {
-
-			cout << "Finished!" << endl;
-		}
-
-
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
 	}
 
+	cout << "Finished!" << endl;
+	m_viewer->close();
 }
 
 void CVelodyneInterface::Process() {
@@ -1105,13 +366,13 @@ void CVelodyneInterface::Process() {
 	//connect();
 
 	//描画をする関数
-	show();
+	showPointCloud_realtime();
 
 	disconnect();
 
 }
 
-void CVelodyneInterface::show() {
+void CVelodyneInterface::showPointCloud_realtime() {
 
 	while (!m_viewer->wasStopped()) {
 		// Update Viewer
@@ -1127,17 +388,17 @@ void CVelodyneInterface::show() {
 			}
 		}
 
-		short key_num = GetAsyncKeyState(VK_SPACE);
-		if ((key_num & 1) == 1) {
-
-			cout << "toggled!" << endl;
-		}
+		if ((GetAsyncKeyState(VK_SPACE) & 1) == 1) break;
 
 	}
 
+	cout << "toggled!" << endl;
+	m_viewer->close();
+
 }
 
-void CVelodyneInterface::initVisualizer() {
+void CVelodyneInterface::initVisualizer()
+{
 
 	// PCL Visualizer
 	m_viewer.reset(new pcl::visualization::PCLVisualizer("Velodyne Viewer"));
@@ -1176,7 +437,8 @@ void CVelodyneInterface::initVisualizer() {
 }
 
 //センサデータ取得のスレッドを走らせるための関数
-void CVelodyneInterface::execute(int nPeriod) {
+void CVelodyneInterface::execute(int nPeriod) 
+{
 
 	//関数オブジェクトの生成？
 	function =
