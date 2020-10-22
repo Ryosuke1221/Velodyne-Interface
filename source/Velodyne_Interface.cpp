@@ -1,80 +1,5 @@
 #include"Velodyne_Interface.h"
 
-void CVelodyneInterface::all(string ipaddress, string port)
-{
-	int WhichProcess = 0;
-	string filename1, filename2;
-	bool b_finish = false;
-
-	enum OPTION {
-		EN_escape = 0,
-		EN_FreeSpace,
-		EN_ToggleWrite,
-		EN_capture,
-		EN_capture2D,
-		EN_sequentshow,
-	};
-
-	while (!b_finish)
-	{
-		cout << endl;
-		cout << "please input process number" << endl;
-		cout << EN_escape << ": escape" << endl;
-		cout << EN_FreeSpace << ": free space" << endl;
-		cout << EN_ToggleWrite << ": ToggleWrite" << endl;
-		cout << EN_capture << ": capture and show" << endl;
-		cout << EN_capture2D << ": capture and show in 2D" << endl;
-		cout << EN_sequentshow << ": sequent show" << endl;
-
-		cin >> WhichProcess;
-		switch (WhichProcess) {
-		case EN_escape:
-			//escape
-			b_finish = true;
-			break;
-
-		case EN_FreeSpace:
-			FreeSpace();
-			break;
-
-		case EN_ToggleWrite:
-			initVisualizer();
-			connect(ipaddress, port);
-			ToggleWrite("../data/00_save");
-			disconnect();
-			break;
-
-		case EN_capture:
-			initVisualizer();
-			connect(ipaddress, port);
-			showPointCloud_realtime();
-			disconnect();
-			break;
-
-		case EN_capture2D:
-			//capture and show in 2D
-			initVisualizer();
-			connect(ipaddress, port);
-			showPointCloud_realtime_2D();
-			disconnect();
-			break;
-
-		case EN_sequentshow:
-			//sequent show
-			initVisualizer();
-			showPointCloud_sequently("../data");
-			break;
-		}
-
-	}
-	
-	cout << "process finished (press:ESC)" << endl;
-	GetAsyncKeyState(VK_ESCAPE);
-	while (1)
-		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
-
-}
-
 Eigen::Matrix4d CVelodyneInterface::calcHomogeneousMatrixFromVector6d(double X_, double Y_, double Z_,
 	double Roll_, double Pitch_, double Yaw_) {
 	Eigen::Matrix4d	transformation_Position = Eigen::Matrix4d::Identity();
@@ -160,6 +85,279 @@ void CVelodyneInterface::FreeSpace()
 
 }
 
+pcl::PointCloud<PointType>::Ptr CVelodyneInterface::getPointCloud() {
+	boost::mutex::scoped_lock lock(m_mutex);
+	pcl::PointCloud<PointType>::Ptr PointCloud(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
+	return PointCloud;
+
+}
+
+pcl::PointCloud<PointType>::Ptr CVelodyneInterface::get2DPointCloud()
+{
+	boost::mutex::scoped_lock lock(m_mutex);
+	pcl::PointCloud<PointType>::Ptr cloud_ptr(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
+	float range_pitch_rad = 30. * D2R;
+	int num_laser = 16;
+	return ElevationAngleFiltering(cloud_ptr, range_pitch_rad, num_laser);
+}
+
+pcl::PointCloud<PointType>::ConstPtr CVelodyneInterface::getPointCloud_ConstPtr()
+{
+	boost::mutex::scoped_lock lock(m_mutex);
+	return m_PointCloud_ConstPtr;
+}
+
+pcl::PointCloud<PointType>::Ptr CVelodyneInterface::ElevationAngleFiltering(pcl::PointCloud<PointType>::Ptr cloud,
+	float range_pitch_rad, int num_laser)
+{
+	float range_pitch_divide = range_pitch_rad / (float)(num_laser - 1);
+	float th_pitch_abs = (range_pitch_divide + range_pitch_divide * 2) / 2.;	//mean of most vertical and second vertical
+	pcl::PointCloud<PointType>::Ptr cloud_filtered(new pcl::PointCloud<PointType>());
+	for (size_t i = 0; i < cloud->points.size(); i++) {
+		double sin_elevation = cloud->points[i].z / sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.) + pow(cloud->points[i].z, 2.));
+		double angle_abs = fabs(asin(sin_elevation));
+		if (angle_abs >= th_pitch_abs) continue;
+		cloud->points[i].z = 0.;
+		cloud_filtered->points.push_back(cloud->points[i]);
+	}
+	//process to prevent error occuring
+	cloud_filtered->width = 1;
+	cloud_filtered->height = cloud_filtered->points.size();
+	cloud_filtered->is_dense = true;
+	return cloud_filtered;
+}
+
+void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
+{
+
+	m_viewer->spinOnce();
+
+	if (p_cloud) {
+
+		// Update Point Cloud
+		m_handler->setInputCloud(p_cloud);
+		if (!m_viewer->updatePointCloud(p_cloud, *m_handler, "cloud")) {
+			m_viewer->addPointCloud(p_cloud, *m_handler, "cloud");
+			cout << "succeeded showing" << endl;
+		}
+
+	}
+	else cout << "fail to show" << endl;
+}
+
+void CVelodyneInterface::Process() {
+
+	initVisualizer();
+	
+	//connect();
+
+	showPointCloud_realtime();
+
+	disconnect();
+
+}
+
+void CVelodyneInterface::initVisualizer()
+{
+
+	// PCL Visualizer
+	m_viewer.reset(new pcl::visualization::PCLVisualizer("Velodyne Viewer"));
+
+	m_viewer->addCoordinateSystem(3.0, "coordinate");
+	m_viewer->setBackgroundColor(0.0, 0.0, 0.0, 0);
+	m_viewer->initCameraParameters();
+	m_viewer->setCameraPosition(0.0, 0.0, 30.0, 0.0, 1.0, 0.0, 0);
+	//m_viewer->removeCoordinateSystem("coordinate");		//remove axis in viewer
+
+	// Point Cloud Color Handler
+	//pcl::visualization::PointCloudColorHandler<PointType>::Ptr handler;	//これはメンバ変数にした．
+	const std::type_info& type = typeid(PointType);
+	if (type == typeid(pcl::PointXYZ)) {
+		std::vector<double> color = { 255.0, 255.0, 255.0 };
+		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerCustom<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerCustom<PointType>(color[0], color[1], color[2]));
+		m_handler = color_handler;
+	}
+	else if (type == typeid(pcl::PointXYZI)) {
+		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerGenericField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerGenericField<PointType>("intensity"));
+		m_handler = color_handler;
+	}
+	else if (type == typeid(pcl::PointXYZRGBA)) {
+		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
+		m_handler = color_handler;
+	}
+	else if (type == typeid(pcl::PointXYZRGB)) {
+		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
+		m_handler = color_handler;
+	}
+	else {
+		throw std::runtime_error("This PointType is unsupported.");
+	}
+}
+
+void CVelodyneInterface::execute(int nPeriod) 
+{
+	function =
+		[this](const pcl::PointCloud<PointType>::ConstPtr& ptr) 
+	{
+
+		//boost::mutex::scoped_lock lock(m_mutex);
+
+		/* Point Cloud Processing */
+		getPC_oneframe_cb(ptr);
+
+	};
+
+	connection = grabber->registerCallback(function);
+}
+
+bool CVelodyneInterface::connect(string ipaddress, string port)
+{
+	//init sensor status
+
+	//arg: ipaddress, port
+
+	std::cout << "-ipadress : " << ipaddress << std::endl;
+	std::cout << "-port : " << port << std::endl;
+
+	if (!ipaddress.empty()) {
+		cout << "Capture from Sensor..." << std::endl;
+		grabber = boost::shared_ptr<pcl::VLPGrabber>(new pcl::VLPGrabber(boost::asio::ip::address::from_string(ipaddress), boost::lexical_cast<unsigned short>(port)));
+	}
+	else {
+		cout << "pcap and ipaddress are not found" << endl;
+		return false;
+	}
+
+	first_success_b = false;
+
+	//thread start
+	this->execute(1);
+
+	grabber->start();
+}
+
+bool CVelodyneInterface::disconnect()
+{
+	grabber->stop();
+
+	if (connection.connected()) {
+		connection.disconnect();
+		cout << "disconnected" << endl;
+	}
+	else return false;
+}
+
+void CVelodyneInterface::getPC_oneframe_cb(const pcl::PointCloud<PointType>::ConstPtr& ptr) 
+{	//call back?
+
+	boost::mutex::scoped_lock lock(m_mutex);
+	m_PointCloud_ConstPtr = ptr;
+
+	if (m_PointCloud_ConstPtr && first_success_b == false) {
+		first_success_b = true;
+		cout << "succeeded connecting!!" << endl;
+
+	}
+}
+
+void CVelodyneInterface::showPointCloud_realtime() {
+
+	while (!m_viewer->wasStopped()) {
+		// Update Viewer
+		m_viewer->spinOnce();
+
+		boost::mutex::scoped_try_lock lock(m_mutex);
+		//m_PointCloud_ConstPtr = getPointCloud();
+		if (lock.owns_lock() && m_PointCloud_ConstPtr) {
+			// Update Point Cloud
+			m_handler->setInputCloud(m_PointCloud_ConstPtr);
+			if (!m_viewer->updatePointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud")) {
+				m_viewer->addPointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud");
+			}
+		}
+
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
+
+	}
+
+	cout << "finished" << endl;
+	m_viewer->close();
+}
+
+void CVelodyneInterface::showPointCloud_realtime_2D()
+{
+
+	pcl::PointCloud<PointType>::Ptr cloud;
+	//pcl::PointCloud<PointType>::ConstPtr cloud;
+
+	while (!m_viewer->wasStopped()) {
+		// Update Viewer
+		m_viewer->spinOnce();
+
+		cloud = get2DPointCloud();
+
+		if (cloud) {
+			// Update Point Cloud
+			m_handler->setInputCloud(cloud);
+			if (!m_viewer->updatePointCloud(cloud, *m_handler, "cloud")) {
+				m_viewer->addPointCloud(cloud, *m_handler, "cloud");
+			}
+		}
+
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
+
+	}
+
+	cout << "finished" << endl;
+	m_viewer->close();
+}
+
+void CVelodyneInterface::ToggleWrite(string dir_) {
+
+	bool b_AttemptCapture = false;
+
+	int num_data = 0;
+
+	cout << "Press SPACE to screenshot" << endl;
+	cout << "Press ESCAPE to finish" << endl;
+
+	while (!m_viewer->wasStopped()) {
+		// Update Viewer
+		m_viewer->spinOnce();
+
+		if ((GetAsyncKeyState(VK_SPACE) & 1) == 1) {
+			b_AttemptCapture = true;
+			cout << "toggled!" << endl;
+		}
+
+		boost::mutex::scoped_try_lock lock(m_mutex);
+
+		if (lock.owns_lock() && m_PointCloud_ConstPtr) {
+			// Update Point Cloud
+			m_handler->setInputCloud(m_PointCloud_ConstPtr);
+			if (!m_viewer->updatePointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud")) {
+				m_viewer->addPointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud");
+			}
+
+			if (b_AttemptCapture == true) {
+				string filename_;
+				filename_ = CTimeString::getTimeString() + ".pcd";
+				cout << filename_ << endl;
+				pcl::io::savePCDFile<PointType>(dir_ + "/" + filename_, *m_PointCloud_ConstPtr);
+				b_AttemptCapture = false;
+				cout << "↑Written!" << endl;
+				num_data++;
+
+			}
+		}
+
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
+	}
+
+	cout << "finished" << endl;
+	m_viewer->close();
+}
+
 void CVelodyneInterface::showPointCloud_sequently(string dir_)
 {
 
@@ -225,290 +423,79 @@ void CVelodyneInterface::showPointCloud_sequently(string dir_)
 	m_viewer->close();
 }
 
-void CVelodyneInterface::showPointCloud_realtime_2D()
+void CVelodyneInterface::all(string ipaddress, string port)
 {
+	int WhichProcess = 0;
+	string filename1, filename2;
+	bool b_finish = false;
 
-	pcl::PointCloud<PointType>::Ptr cloud;
-	//pcl::PointCloud<PointType>::ConstPtr cloud;
-
-	while (!m_viewer->wasStopped()) {
-		// Update Viewer
-		m_viewer->spinOnce();
-
-		cloud = get2DPointCloud();					//中にm_mutexが入っているので，同時アクセスの危険は薄いと思う．
-
-		if (cloud) {
-			// Update Point Cloud
-			m_handler->setInputCloud(cloud);
-			if (!m_viewer->updatePointCloud(cloud, *m_handler, "cloud")) {
-				m_viewer->addPointCloud(cloud, *m_handler, "cloud");
-			}
-		}
-
-		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
-
-	}
-
-	cout << "finished" << endl;
-	m_viewer->close();
-}
-
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::getPointCloud() {
-	boost::mutex::scoped_lock lock(m_mutex);
-	pcl::PointCloud<PointType>::Ptr PointCloud(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
-	return PointCloud;
-
-}
-
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::get2DPointCloud()
-{
-	boost::mutex::scoped_lock lock(m_mutex);
-	pcl::PointCloud<PointType>::Ptr cloud_ptr(new pcl::PointCloud<PointType>(*m_PointCloud_ConstPtr));	//ConstPtr -> Ptr
-	float range_pitch_rad = 30. * D2R;
-	int num_laser = 16;
-	return ElevationAngleFiltering(cloud_ptr, range_pitch_rad, num_laser);
-}
-
-pcl::PointCloud<PointType>::ConstPtr CVelodyneInterface::getPointCloud_ConstPtr()
-{
-	boost::mutex::scoped_lock lock(m_mutex);
-	return m_PointCloud_ConstPtr;
-}
-
-pcl::PointCloud<PointType>::Ptr CVelodyneInterface::ElevationAngleFiltering(pcl::PointCloud<PointType>::Ptr cloud,
-	float range_pitch_rad, int num_laser)
-{
-	float range_pitch_divide = range_pitch_rad / (float)(num_laser - 1);
-	float th_pitch_abs = (range_pitch_divide + range_pitch_divide * 2) / 2.;	//mean of most vertical and second vertical
-	pcl::PointCloud<PointType>::Ptr cloud_filtered(new pcl::PointCloud<PointType>());
-	for (size_t i = 0; i < cloud->points.size(); i++) {
-		double sin_elevation = cloud->points[i].z / sqrt(pow(cloud->points[i].x, 2.) + pow(cloud->points[i].y, 2.) + pow(cloud->points[i].z, 2.));
-		double angle_abs = fabs(asin(sin_elevation));
-		if (angle_abs >= th_pitch_abs) continue;
-		cloud->points[i].z = 0.;
-		cloud_filtered->points.push_back(cloud->points[i]);
-	}
-	//process to prevent error occuring
-	cloud_filtered->width = 1;
-	cloud_filtered->height = cloud_filtered->points.size();
-	cloud_filtered->is_dense = true;
-	return cloud_filtered;
-}
-
-void CVelodyneInterface::ShowPcdFile(pcl::PointCloud<PointType>::Ptr p_cloud)
-{
-
-	m_viewer->spinOnce();
-
-	if (p_cloud) {
-
-		// Update Point Cloud
-		m_handler->setInputCloud(p_cloud);
-		if (!m_viewer->updatePointCloud(p_cloud, *m_handler, "cloud")) {
-			m_viewer->addPointCloud(p_cloud, *m_handler, "cloud");
-			cout << "succeeded showing" << endl;
-		}
-
-	}
-	else cout << "fail to show" << endl;
-}
-
-void CVelodyneInterface::ToggleWrite(string dir_) {
-
-	bool b_AttemptCapture = false;
-
-	int num_data = 0;
-
-	cout << "Press SPACE to screenshot" << endl;
-	cout << "Press SPACE to finish" << endl;
-
-	while (!m_viewer->wasStopped()) {
-		// Update Viewer
-		m_viewer->spinOnce();
-
-		if ((GetAsyncKeyState(VK_SPACE) & 1) == 1) {
-			b_AttemptCapture = true;
-			cout << "toggled!" << endl;
-		}
-
-		boost::mutex::scoped_try_lock lock(m_mutex);
-
-		if (lock.owns_lock() && m_PointCloud_ConstPtr) {
-			// Update Point Cloud
-			m_handler->setInputCloud(m_PointCloud_ConstPtr);
-			if (!m_viewer->updatePointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud")) {
-				m_viewer->addPointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud");
-			}
-
-			if (b_AttemptCapture == true) {
-				string filename_;
-				filename_ = CTimeString::getTimeString() + ".pcd";
-				cout << filename_ << endl;
-				pcl::io::savePCDFile<PointType>(dir_ + "/" + filename_, *m_PointCloud_ConstPtr);
-				b_AttemptCapture = false;
-				cout << "↑Written!" << endl;
-				num_data++;
-
-			}
-		}
-
-		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
-	}
-
-	cout << "Finished!" << endl;
-	m_viewer->close();
-}
-
-void CVelodyneInterface::Process() {
-
-	initVisualizer();
-	
-	//connect();
-
-	//描画をする関数
-	showPointCloud_realtime();
-
-	disconnect();
-
-}
-
-void CVelodyneInterface::showPointCloud_realtime() {
-
-	while (!m_viewer->wasStopped()) {
-		// Update Viewer
-		m_viewer->spinOnce();
-
-		boost::mutex::scoped_try_lock lock(m_mutex);
-		//m_PointCloud_ConstPtr = getPointCloud();
-		if (lock.owns_lock() && m_PointCloud_ConstPtr) {
-			// Update Point Cloud
-			m_handler->setInputCloud(m_PointCloud_ConstPtr);
-			if (!m_viewer->updatePointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud")) {
-				m_viewer->addPointCloud(m_PointCloud_ConstPtr, *m_handler, "cloud");
-			}
-		}
-
-		if ((GetAsyncKeyState(VK_SPACE) & 1) == 1) break;
-
-	}
-
-	cout << "toggled!" << endl;
-	m_viewer->close();
-
-}
-
-void CVelodyneInterface::initVisualizer()
-{
-
-	// PCL Visualizer
-	m_viewer.reset(new pcl::visualization::PCLVisualizer("Velodyne Viewer"));
-
-	m_viewer->addCoordinateSystem(3.0, "coordinate");
-	m_viewer->setBackgroundColor(0.0, 0.0, 0.0, 0);
-	m_viewer->initCameraParameters();
-	m_viewer->setCameraPosition(0.0, 0.0, 30.0, 0.0, 1.0, 0.0, 0);
-	//m_viewer->removeCoordinateSystem("coordinate");		//remove axis in viewer
-
-	// Point Cloud Color Handler
-	//pcl::visualization::PointCloudColorHandler<PointType>::Ptr handler;	//これはメンバ変数にした．
-	const std::type_info& type = typeid(PointType);
-	if (type == typeid(pcl::PointXYZ)) {
-		std::vector<double> color = { 255.0, 255.0, 255.0 };
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerCustom<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerCustom<PointType>(color[0], color[1], color[2]));
-		m_handler = color_handler;
-	}
-	else if (type == typeid(pcl::PointXYZI)) {
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerGenericField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerGenericField<PointType>("intensity"));
-		m_handler = color_handler;
-	}
-	else if (type == typeid(pcl::PointXYZRGBA)) {
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
-		m_handler = color_handler;
-	}
-	else if (type == typeid(pcl::PointXYZRGB)) {
-		boost::shared_ptr<pcl::visualization::PointCloudColorHandlerRGBField<PointType>> color_handler(new pcl::visualization::PointCloudColorHandlerRGBField<PointType>());
-		m_handler = color_handler;
-	}
-	else {
-		throw std::runtime_error("This PointType is unsupported.");
-	}
-
-
-}
-
-//センサデータ取得のスレッドを走らせるための関数
-void CVelodyneInterface::execute(int nPeriod) 
-{
-
-	//関数オブジェクトの生成？
-	function =
-		[this](const pcl::PointCloud<PointType>::ConstPtr& ptr) {
-
-		//boost::mutex::scoped_lock lock(m_mutex);
-
-		/* Point Cloud Processing */
-		getPC_oneframe_cb(ptr);
-
+	enum OPTION {
+		EN_escape = 0,
+		EN_FreeSpace,
+		EN_capture,
+		EN_capture2D,
+		EN_ToggleWrite,
+		EN_sequentshow,
 	};
 
-	connection = grabber->registerCallback(function);
+	while (!b_finish)
+	{
+		cout << endl;
+		cout << "please input process number" << endl;
+		cout << EN_escape << ": escape" << endl;
+		cout << EN_FreeSpace << ": free space" << endl;
+		cout << EN_capture << ": capture and show" << endl;
+		cout << EN_capture2D << ": capture and show in 2D" << endl;
+		cout << EN_ToggleWrite << ": ToggleWrite" << endl;
+		cout << EN_sequentshow << ": sequent show" << endl;
 
-}
+		cin >> WhichProcess;
+		switch (WhichProcess) {
+		case EN_escape:
+			//escape
+			b_finish = true;
+			break;
 
-bool CVelodyneInterface::connect(string ipaddress, string port)
-{
-	//init sensor status
+		case EN_FreeSpace:
+			FreeSpace();
+			break;
 
-	//arg: ipaddress, port
+		case EN_capture:
+			initVisualizer();
+			connect(ipaddress, port);
+			showPointCloud_realtime();
+			disconnect();
+			break;
 
-	std::cout << "-ipadress : " << ipaddress << std::endl;
-	std::cout << "-port : " << port << std::endl;
+		case EN_capture2D:
+			//capture and show in 2D
+			initVisualizer();
+			connect(ipaddress, port);
+			showPointCloud_realtime_2D();
+			disconnect();
+			break;
 
-	if (!ipaddress.empty()) {
-		cout << "Capture from Sensor..." << std::endl;
-		grabber = boost::shared_ptr<pcl::VLPGrabber>(new pcl::VLPGrabber(boost::asio::ip::address::from_string(ipaddress), boost::lexical_cast<unsigned short>(port)));
-	}
-	else {
-		cout << "pcap and ipaddress are not found" << endl;
-		return false;
-	}
+		case EN_ToggleWrite:
+			initVisualizer();
+			connect(ipaddress, port);
+			ToggleWrite("../data/00_save");
+			disconnect();
+			break;
 
-	first_success_b = false;
-
-	//thread start
-	this->execute(1);
-
-	grabber->start();
-}
-
-//boolの方がいい？
-bool CVelodyneInterface::disconnect()
-{
-
-	//センサデータ取得のループを終わらせる処理と，スレッドを終わらせる処理を書く．
-	grabber->stop();
-
-	if (connection.connected()) {
-		connection.disconnect();
-		cout << "disconnected" << endl;
-	}
-	else return false;
-}
-
-//センサデータを1フレーム分取得する，繰り返されるべき関数
-void CVelodyneInterface::getPC_oneframe_cb(const pcl::PointCloud<PointType>::ConstPtr& ptr) 
-{	//call back?
-
-	boost::mutex::scoped_lock lock(m_mutex);
-	m_PointCloud_ConstPtr = ptr;
-
-	if (m_PointCloud_ConstPtr && first_success_b == false) {
-		first_success_b = true;
-		cout << "succeeded connecting!!" << endl;
+		case EN_sequentshow:
+			//sequent show
+			initVisualizer();
+			showPointCloud_sequently("../data");
+			break;
+		}
 
 	}
 
-}
+	cout << "process finished (press:ESC)" << endl;
+	GetAsyncKeyState(VK_ESCAPE);
+	while (1)
+		if ((GetAsyncKeyState(VK_ESCAPE) & 1) == 1) break;
 
+}
 
 
